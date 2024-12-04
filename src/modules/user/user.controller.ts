@@ -678,3 +678,84 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
     data: null,
   });
 });
+
+
+//admin-login
+export const adminloginUser = catchAsync(
+  async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+    // const lang = req.headers.lang as string;
+
+    // // Check language validity
+    // if (!lang || (lang !== "es" && lang !== "en")) {
+    //   return sendError(res, httpStatus.BAD_REQUEST, {
+    //     message: "Choose a language",
+    //   });
+    // }
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return sendError(res, httpStatus.NOT_FOUND, {
+        message:
+          // lang === "es"
+          //   ? "Esta cuenta no existe."
+          //   :
+          "This account does not exist.",
+      });
+    }
+
+    // check admin or not
+    //  console.log(user,"user")
+    if (user.role !== "admin") {
+      return sendError(res, httpStatus.FORBIDDEN, {
+        message:
+          // lang === "es"
+          //   ? "Solo los administradores pueden iniciar sesión."
+          //   :
+          "Only admins can login.",
+      });
+    }
+
+    // Check password validity
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.password as string,
+    );
+    if (!isPasswordValid) {
+      return sendError(res, httpStatus.UNAUTHORIZED, {
+        message:
+          // lang === "es" ? "¡Contraseña incorrecta!" :
+          "Wrong password!",
+      });
+    }
+
+    // Generate new token for the logged-in user
+    const newToken = generateToken({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      image: user?.image,
+      // lang: lang,
+    });
+
+    // Send the response
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message:
+        // lang === "es" ? "¡Inicio de sesión completo!" :
+        "Login complete!",
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          image: user?.image,
+        },
+        token: newToken,
+      },
+    });
+  },
+);

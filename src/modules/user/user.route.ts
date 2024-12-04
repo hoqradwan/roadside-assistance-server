@@ -14,6 +14,7 @@ import {
   getAllUsers,
   BlockUser,
   deleteUser,
+  adminloginUser,
 } from "./user.controller";
 import upload from "../../middlewares/fileUploadNormal";
 import { adminMiddleware } from "../../middlewares/auth";
@@ -25,6 +26,7 @@ router.post(
   registerUser,
 );
 router.post("/login", loginUser);
+router.post("/admin-login", adminloginUser);
 router.post("/forget-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/verify-otp", verifyOTP);

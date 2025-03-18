@@ -5,9 +5,7 @@ import seedSuperAdmin from "./DB";
 import app from "./app";
 import { DATABASE_URL, PORT } from "./config";
 import { initSocketIO } from "./utils/socket";
-import { createServer } from "node:http";
 import http from "http";
-
 const server = http.createServer(app);
 initSocketIO(server);
 

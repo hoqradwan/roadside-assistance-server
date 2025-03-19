@@ -1,0 +1,10 @@
+import express from 'express';
+import { createService, getAllServices, getServiceById,updateService,deleteService } from './service.controller';
+import { adminMiddleware } from '../../middlewares/auth';
+const router = express.Router();
+router.post('/create',adminMiddleware("admin"), createService);
+router.get('/all', getAllServices);
+router.get('/:id', getServiceById);
+router.post('/:id', updateService);
+router.delete('/:id', deleteService);
+export const ServiceRoutes = router;

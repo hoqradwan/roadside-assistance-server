@@ -9,13 +9,22 @@ export const validateUserInput = (
   name: string,
   email: string,
   password: string,
+  role : string
 ): ValidationResult | null => {
+
+  console.log({name,email,password});
+
   if (!name || !email || !password) {
     return { isOk: false, message: "Please fill all the fields" };
+  }
+  if(role !== "mechanic"){
+    return { isOk: false, message: "Role must be mechanic" };
   }
   if (password.length < 5) {
     return { isOk: false, message: "Password must be at least 5 characters" };
   }
+
+  
   return null;
 };
 

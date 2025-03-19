@@ -14,15 +14,18 @@ import {
 export const createUser = async ({
   name,
   email,
+  role,
   hashedPassword,
 }: {
   name: string;
   email: string;
+  role: string;
   hashedPassword: string;
 }): Promise<{ createdUser: IUser }> => {
   const createdUser = await UserModel.create({
     name,
     email,
+    role,
     password: hashedPassword,
   });
   return { createdUser };

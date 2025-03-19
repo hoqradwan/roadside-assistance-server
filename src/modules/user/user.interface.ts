@@ -5,7 +5,7 @@ export type IPendingUser = {
   name: string;
   password: string;
   confirmPassword: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "mechanic";
 } & Document;
 
 export type IUser = {
@@ -19,7 +19,7 @@ export type IUser = {
     publicFileURL: string;
     path: string;
   };
-  role: "admin" | "user";
+  role: "admin" | "user" | "mechanic";
   status: "active" | "blocked";
   age: string;
   gender: string;

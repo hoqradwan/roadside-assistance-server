@@ -8,10 +8,18 @@ import { promoCodeRoutes } from "../modules/promoCode/promoCode.route";
 import { feedBackRoutes } from "../modules/Feedback/feedback.route";
 import { subscriptionRoutes } from "../modules/subscription/subscription.route";
 import { paymentRoutes } from "../modules/payment/payment.route";
+import { ServiceRoutes } from "../modules/Service/service.route";
+import { MechanicRoutes } from "../modules/Mechanic/mechanic.route";
+import { VehicleRoutes } from "../modules/Vehicle/vehicle.route";
+import { FavouriteRoutes } from "../modules/Favourite/favourite.route";
 
 const router = express.Router();
 
 router.use("/api/v1/user", UserRoutes);
+router.use("/api/v1/service", ServiceRoutes);
+router.use("/api/v1/mechanic", MechanicRoutes);
+router.use("/api/v1/vehicle", VehicleRoutes);
+router.use("/api/v1/favourite", FavouriteRoutes);
 router.use("/api/v1/terms", TermsRoutes);
 router.use("/api/v1/about", AboutRoutes);
 router.use("/api/v1/privacy", PrivacyRoutes);

@@ -6,7 +6,7 @@ interface AuthRequest extends Request {
   user?: jwt.JwtPayload | string;
 }
 
-type Role = "admin" | "user";
+type Role = "admin" | "user"|"mechanic";
 
 export const adminMiddleware = (role?: Role) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {

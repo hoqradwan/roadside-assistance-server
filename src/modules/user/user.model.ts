@@ -9,7 +9,7 @@ const PendingUserSchema = new Schema<IPendingUser>(
     confirmPassword: { type: String, required: true, trim: true },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "admin","mechanic"],
     },
   },
   { timestamps: true },
@@ -42,7 +42,7 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["admin", "user"],
+      enum: ["admin", "user", "mechanic"],
       default: "user",
     },
     status: {

@@ -31,3 +31,15 @@ export const getFavourites = catchAsync(async (req: CustomRequest, res: Response
         data: result
     })
 })
+
+export const removeFavourite = catchAsync(async (req: CustomRequest, res: Response) => {
+    const userId = req.user.id;
+    const result = await Favourite.findOneAndDelete({ user: userId, mechanic: req.params.id });
+    if (!result) throw new Error("Favourite not found");
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Favourite removed successfully",
+        data: null
+    })
+})

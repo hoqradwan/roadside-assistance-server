@@ -12,6 +12,7 @@ import {
   findUserById,
   generateOTP,
   generateToken,
+  getDistanceAndETA,
   getStoredOTP,
   getUserList,
   getUserRegistrationDetails,
@@ -36,7 +37,6 @@ import httpStatus from "http-status";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
-  console.log("reg",req.body)
   const validationError = validateUserInput(name, email, password,role);
 
   if (validationError) {
@@ -852,3 +852,23 @@ export const mechanicloginUser = catchAsync(
     });
   },
 );
+
+
+export const getUserToMechanicDistance = async (req: Request, res: Response) => {
+  try {
+    const { userId, mechanicId } = req.params;
+    const result = await getDistanceAndETA(userId, mechanicId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Distance and ETA fetched successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("Error in getUserToMechanicDistance:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};

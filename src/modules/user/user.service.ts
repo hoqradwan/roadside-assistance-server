@@ -10,6 +10,10 @@ import {
   Nodemailer_GMAIL,
   Nodemailer_GMAIL_PASSWORD,
 } from "../../config";
+import AppError from "../../errors/AppError";
+import httpStatus from "http-status";
+import mongoose from "mongoose";
+import Mechanic from "../Mechanic/mechanic.model";
 
 export const createUser = async ({
   name,
@@ -183,3 +187,99 @@ export const changeUserRole = async (
 export const userDelete = async (id: string): Promise<void> => {
   await UserModel.findByIdAndUpdate(id, { isDeleted: true });
 };
+
+const AVERAGE_SPEED_KMPH = 30; // Adjust based on your use case
+
+export const getDistanceAndETA = async (userId: string, mechanicId: string) => {
+  console.log("in distance")
+  const user = await UserModel.findById(userId);
+  // if (!user || !user.location || !user.location.lat || !user.location.lng) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, "User or location not found");
+  // }
+
+  // Find the mechanic user
+  const mechanicUser = await UserModel.findById(mechanicId);
+
+  console.log(mechanicUser)
+
+  // if (
+  //   !mechanicUser ||
+  //   !mechanicUser.location ||
+  //   !mechanicUser.location.lat ||
+  //   !mechanicUser.location.lng
+  // ) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, "Mechanic or location not found");
+  // }
+
+  // GeoNear needs coordinates in GeoJSON format
+  const geoNearResult = await UserModel.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [user?.location.coordinates[0], user?.location.coordinates[1]],
+        },
+        key: "location", // your user schema should have index on `location`
+        query: { _id: new mongoose.Types.ObjectId(mechanicUser._id) },
+        distanceField: "distanceInMeters",
+        spherical: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        distanceInKm: { $divide: ["$distanceInMeters", 1000] },
+      },
+    },
+    {
+      $addFields: {
+        estimatedTimeInMinutes: {
+          $ceil: {
+            $divide: [
+              { $multiply: ["$distanceInKm", 60] },
+              AVERAGE_SPEED_KMPH,
+            ],
+          },
+        },
+      },
+    },
+  ]);
+
+  if (!geoNearResult.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Mechanic not found nearby");
+  }
+
+  const result = geoNearResult[0];
+
+  return {
+    mechanicId: result._id,
+    mechanicName: result.name,
+    distance: `${result.distanceInKm.toFixed(2)} km`,
+    eta: `${result.estimatedTimeInMinutes} mins`,
+  };
+};
+//   const user = await UserModel.findById(userId);
+//   const mechanicData = await Mechanic.findById(mechanicId).populate("user");
+
+//   if (!user || !mechanicData || !mechanicData.user) {
+//     throw new Error("User or Mechanic not found");
+//   }
+
+//   const mechanicUser = mechanicData.user as any;
+
+//   if (!user.location || !mechanicUser.location) {
+//     throw new Error("Missing location data");
+//   }
+
+//   const origin = user.location;
+//   const destination = mechanicUser.location;
+//   const { distanceText, durationText } = await getDistanceFromGoogleMaps(origin, destination);
+
+//   return {
+//     from: user.name,
+//     to: mechanicUser.name,
+//     distance: distanceText,
+//     duration: durationText,
+//   };
+// };

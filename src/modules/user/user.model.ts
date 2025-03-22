@@ -67,6 +67,17 @@ const UserSchema = new Schema<IUser>(
       type: String, // Store the name of the promo code
       default: "", // Default value will be an empty string
     },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
+      },
+    },
     expiryDate: {
       type: Date, // Store the name of the promo code
       default: null, // Default value will be an empty string
@@ -86,6 +97,8 @@ const UserSchema = new Schema<IUser>(
 
 export const UserModel =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+
+UserSchema.index({ location: "2dsphere" });
 
 const OTPSchema = new Schema<IOTP>({
   email: { type: String, required: true, trim: true },

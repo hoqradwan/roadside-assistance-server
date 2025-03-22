@@ -25,8 +25,12 @@ export type IUser = {
   gender: string;
   about: string;
   bio: string;
-
   cuponCode: string;
+  location :{
+    
+    type : string;
+    coordinates : [number,number];
+  },
   expiryDate: Date | null;
   activeDate: Date | null;
   isDeleted: boolean;

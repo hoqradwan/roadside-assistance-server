@@ -6,9 +6,9 @@ const router = express.Router();
 
 router.post('/make-mechanic', adminMiddleware("admin"), makeMechanic);
 router.post('/create', adminMiddleware("admin"), createMechanic);
-router.get('/all',  getAllMechanics);
-router.get('/:id', getMechanicById);
-router.post('/:id',adminMiddleware("admin"), updateMechanic);
-router.delete('/:id', deleteMechanic);
+router.get('/all',adminMiddleware("admin","user"),  getAllMechanics);
+router.get('/:id', adminMiddleware("admin","user"), getMechanicById);
+router.post('/:id',adminMiddleware("admin","mechanic"), updateMechanic);
+router.delete('/:id',adminMiddleware("admin"), deleteMechanic);
 
 export const MechanicRoutes = router;

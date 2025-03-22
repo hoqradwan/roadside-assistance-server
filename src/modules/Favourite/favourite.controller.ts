@@ -3,11 +3,9 @@ import sendResponse from "../../utils/sendResponse";
 import catchAsync from "../../utils/catchAsync";
 import { Request, Response } from "express";
 import Favourite from "./favourite.model";
-interface CustomRequest extends Request {
-    user?: any;
-}
+import { CustomRequest } from "../../utils/customRequest";
+
 export const addFavourite =catchAsync(async (req: CustomRequest, res: Response) => {
-    console.log("Add favourite",req);
     const { mechanic } = req.body;
     const userId = req.user.id;
     const existingFavourite = await Favourite.findOne({ mechanic, user: userId });

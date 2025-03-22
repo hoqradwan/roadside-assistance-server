@@ -3,8 +3,8 @@ import { createService, getAllServices, getServiceById,updateService,deleteServi
 import { adminMiddleware } from '../../middlewares/auth';
 const router = express.Router();
 router.post('/create',adminMiddleware("admin"), createService);
-router.get('/all', getAllServices);
-router.get('/:id', getServiceById);
-router.post('/:id', updateService);
-router.delete('/:id', deleteService);
+router.get('/all', adminMiddleware("admin","user","mechanic"),  getAllServices);
+router.get('/:id', adminMiddleware("admin","user","mechanic"), getServiceById);
+router.post('/:id', adminMiddleware("admin"), updateService);
+router.delete('/:id', adminMiddleware("admin"),deleteService);
 export const ServiceRoutes = router;

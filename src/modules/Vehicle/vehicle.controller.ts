@@ -1,10 +1,13 @@
 import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { createVehicleIntoDB } from "./vehicle.service";
+import { createVehicleIntoDB, deleteVehicleFromDB, getSingleVehicleFromDB, getVehiclesFromDB, updateVehicleIntoDB } from "./vehicle.service";
 import Vehicle from "./vehicle.model";
+import { Request, Response } from "express";
+import { CustomRequest } from "../../utils/customRequest";
+import { get } from "mongoose";
 
-export const createVehicle = catchAsync(async (req, res) => {
+export const createVehicle = catchAsync(async (req :Request, res:Response) => {
     const result = await createVehicleIntoDB(req.body);
     sendResponse(res, {
         statusCode: httpStatus.CREATED, success: true,
@@ -13,8 +16,8 @@ export const createVehicle = catchAsync(async (req, res) => {
     })
 })
 
-export const getVehicles = catchAsync(async (req, res) => {
-    const result = await Vehicle.find();
+export const getVehicles = catchAsync(async (req :CustomRequest, res : Response) => {
+    const result = await getVehiclesFromDB(req.user);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -23,9 +26,9 @@ export const getVehicles = catchAsync(async (req, res) => {
     })
 })
 
-export const getVehicleById = catchAsync(async (req, res) => {
-    const result = await Vehicle.findById(req.params.id);
-    if (!result) throw new Error("Vehicle not found");
+export const getSingleVehicle = catchAsync(async (req:CustomRequest, res:Response) => {
+  const result = await getSingleVehicleFromDB(req.params.id, req.user);
+  console.log("result",result);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -34,9 +37,8 @@ export const getVehicleById = catchAsync(async (req, res) => {
     })
 })
 
-export const updateVehicle = catchAsync(async (req, res) => {
-    const result = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!result) throw new Error("Vehicle not found");
+export const updateVehicle = catchAsync(async (req : CustomRequest, res : Response) => {
+    const result = await updateVehicleIntoDB(req.params.id, req.body, req.user);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -45,9 +47,8 @@ export const updateVehicle = catchAsync(async (req, res) => {
     })
 })
 
-export const deleteVehicle = catchAsync(async (req, res) => {
-    const result = await Vehicle.findByIdAndDelete(req.params.id);
-    if (!result) throw new Error("Vehicle not found");
+export const deleteVehicle = catchAsync(async (req :CustomRequest, res : Response) => {
+    const result = await deleteVehicleFromDB(req.params.id, req.user);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,

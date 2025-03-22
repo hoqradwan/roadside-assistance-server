@@ -44,7 +44,12 @@ export const getMechanicById = catchAsync(async (req, res) => {
     })
 })
 export const updateMechanic = catchAsync(async (req, res) => {
-    const result = await Mechanic.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const result = await Mechanic.findByIdAndUpdate(
+        req.params.id,
+        { $addToSet: { services: req.body.services } }, 
+        { new: true }
+      );
+      
     if (!result) throw new Error("Mechanic not found");
     sendResponse(res, {
         statusCode: 200,

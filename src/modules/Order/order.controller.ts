@@ -34,9 +34,10 @@ export const getSingleOrder = catchAsync(async (req: Request, res: Response) => 
     data: result,
   });
 })
-export const getOrdersByStatus = catchAsync(async (req: Request, res: Response) => {
+export const getOrdersByStatus = catchAsync(async (req: CustomRequest, res: Response) => {
   const { status } = req.body;
-  const result = await getOrdersByStatusFromDB(status);
+  const userData = req.user
+  const result = await getOrdersByStatusFromDB(status, userData);
 
   sendResponse(res, {
     statusCode: 200,

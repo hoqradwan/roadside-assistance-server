@@ -39,7 +39,7 @@ router.post("/change-password", changePassword);
 router.post("/update", upload.single("image"), updateUser);
 
 router.get("/my-profile", getSelfInfo);
-router.get("/all-user", adminMiddleware("admin"), getAllUsers);
+router.get("/all", adminMiddleware("admin"), getAllUsers);
 router.get("/:userId/:mechanicId", getUserToMechanicDistance);
 
 router.post("/block-user", adminMiddleware("admin"), BlockUser);

@@ -6,6 +6,8 @@ export interface IMechanic extends Document {
     rating: number;
     experience: number;
     description: string;
+    serviceCount:number;
+    isAvailable:boolean;
 }
 
 const MechanicSchema = new Schema<IMechanic>({
@@ -13,7 +15,9 @@ const MechanicSchema = new Schema<IMechanic>({
     services: [{ type: Schema.Types.ObjectId, ref: 'Service', required: true }],
     rating: { type: Number, required: true, default: 0 },
     experience: { type: Number, required: true },
-    description: { type: String, default: "" }
+    description: { type: String, default: "" },
+    serviceCount : {type : Number, default : 0},
+    isAvailable : {type : Boolean, default : true}
 });
 
 const Mechanic = model<IMechanic>('Mechanic', MechanicSchema);

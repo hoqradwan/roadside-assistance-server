@@ -1,7 +1,7 @@
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Mechanic from "./mechanic.model";
-import { createMechanicIntoDB, getAllMechanicsFromDB, makeMechanicIntoDB } from "./mechanic.service";
+import { createMechanicIntoDB, getAllMechanicsFromDB, makeMechanicIntoDB, toggleAvailabilityIntoDB } from "./mechanic.service";
 
 export const makeMechanic = catchAsync(async (req, res) => {
     const {email} = req.body;
@@ -59,6 +59,15 @@ export const updateMechanic = catchAsync(async (req, res) => {
     })
 })
 
+export const toggleAvailability = catchAsync(async (req, res) => {
+   const result = await toggleAvailabilityIntoDB(req.params.id);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Mechanic availability toggled successfully",
+        data: result
+    })
+})
 export const deleteMechanic = catchAsync(async (req, res) => {
     const result = await Mechanic.findByIdAndDelete(req.params.id);
     if (!result) throw new Error("Mechanic not found");

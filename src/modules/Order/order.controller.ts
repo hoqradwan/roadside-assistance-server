@@ -1,12 +1,14 @@
+import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Order from "./order.model";
-import { createOrderIntoDB } from "./order.service";
+import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB } from "./order.service";
+import { CustomRequest } from "../../utils/customRequest";
 
-export const createOrder = catchAsync(async (req,res) => {
+export const createOrder = catchAsync(async (req: Request, res: Response) => {
   // Create a new order
   const result = await createOrderIntoDB(req.body);
-  sendResponse(res,  {
+  sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Order created successfully",
@@ -14,22 +16,44 @@ export const createOrder = catchAsync(async (req,res) => {
   });
 })
 
-export const getOrders = catchAsync(async (req,res) => {    
-    const result = await Order.find({});
-  sendResponse(res,  {
+export const getOrders = catchAsync(async (req: Request, res: Response) => {
+  const result = await Order.find({});
+  sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Orders fetched successfully",
     data: result,
   });
 })
-export const getSingleOrder = catchAsync(async (req,res) => {    
-    const result = await Order.findById(req.params.id);
-  sendResponse(res,  {
+export const getSingleOrder = catchAsync(async (req: Request, res: Response) => {
+  const result = await Order.findById(req.params.id);
+  sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Order fetched successfully",
     data: result,
   });
 })
-// Compare this snippet from src/modules/Order/order.service.ts:
+export const getOrdersByStatus = catchAsync(async (req: Request, res: Response) => {
+  const { status } = req.body;
+  const result = await getOrdersByStatusFromDB(status);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order fetched by status successfully",
+    data: result,
+  });
+})
+export const getOrdersByMechanic = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { mechanicid } = req.params;
+  const userData = req.user
+  const result = await getOrdersByMechanicFromDB(mechanicid, userData);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order fetched by status successfully",
+    data: result,
+  });
+})

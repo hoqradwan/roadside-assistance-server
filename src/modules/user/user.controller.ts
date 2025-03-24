@@ -34,6 +34,7 @@ import {
 } from "../../config";
 import { emitNotification } from "../../utils/socket";
 import httpStatus from "http-status";
+import { CustomRequest } from "../../utils/customRequest";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -537,30 +538,9 @@ export const getSelfInfo = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return sendError(res, httpStatus.UNAUTHORIZED, {
-      message: "No token provided or invalid format.",
-    });
-  }
-  const token = authHeader.split(" ")[1];
-  const decoded = jwt.verify(token, JWT_SECRET_KEY as string) as { id: string };
-  const adminId = decoded.id;
+export const getAllUsers = catchAsync(async (req: CustomRequest, res: Response) => {
+  const {id : adminId} = req.user;
 
-  // Find the user by userId
-  const user = await findUserById(adminId);
-  if (!user) {
-    return sendError(res, httpStatus.NOT_FOUND, {
-      message: "This admin account doesnot exist.",
-    });
-  }
-  // Check if the user is an admin
-  if (user.role !== "admin") {
-    return sendError(res, httpStatus.FORBIDDEN, {
-      message: "Only admins can access the user list.",
-    });
-  }
   // Pagination parameters
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;

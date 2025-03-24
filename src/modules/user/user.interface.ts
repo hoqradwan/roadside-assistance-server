@@ -31,6 +31,7 @@ export type IUser = {
     type : string;
     coordinates : [number,number];
   },
+  isActive : boolean;
   expiryDate: Date | null;
   activeDate: Date | null;
   isDeleted: boolean;

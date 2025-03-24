@@ -27,3 +27,10 @@ export const getAllMechanicsFromDB = async () => {
     return result;
 
 }
+
+export const toggleAvailabilityIntoDB = async (mechanicId : string) => {
+    const mechanic = await Mechanic.findById(mechanicId);
+    if(!mechanic) throw new Error("Mechanic not found");
+    const result = await Mechanic.findByIdAndUpdate(mechanicId, {isAvailable : !mechanic.isAvailable}, {new : true}); 
+    return result;
+}

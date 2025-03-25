@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { createWithdraw } from './withdraw.controller';
+import { createWithdraw, markAsPaid } from './withdraw.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
 
-router.post('/withdraw',adminMiddleware("admin","mechanic"), createWithdraw);
+router.post('/',adminMiddleware("mechanic"), createWithdraw);
+router.post('/mark-paid/:mechanicId',adminMiddleware("admin"), markAsPaid);
 
 
 

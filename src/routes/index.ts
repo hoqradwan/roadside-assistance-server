@@ -15,6 +15,7 @@ import { FavouriteRoutes } from "../modules/Favourite/favourite.route";
 import { ChatRoutes } from "../modules/Chat/chat.route";
 import { OrderRoutes } from "../modules/Order/order.route";
 import { AdminRoutes } from "../modules/Admin/admin.route";
+import { commissionRoutes } from "../modules/Commission/commission.route";
 
 const router = express.Router();
 
@@ -25,6 +26,8 @@ router.use("/api/v1/admin", AdminRoutes);
 router.use("/api/v1/mechanic", MechanicRoutes);
 router.use("/api/v1/vehicle", VehicleRoutes);
 router.use("/api/v1/order", OrderRoutes);
+router.use("/api/v1/commission", commissionRoutes
+);
 router.use("/api/v1/favourite", FavouriteRoutes);
 router.use("/api/v1/terms", TermsRoutes);
 router.use("/api/v1/about", AboutRoutes);

@@ -35,6 +35,8 @@ export type IUser = {
   expiryDate: Date | null;
   activeDate: Date | null;
   isDeleted: boolean;
+  uniqueUserId: string;
+  
 } & Document;
 
 export type IOTP = {

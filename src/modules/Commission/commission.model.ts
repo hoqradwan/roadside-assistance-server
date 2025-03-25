@@ -1,11 +1,8 @@
 import * as mongoose from 'mongoose';
+import { ICommission } from './commission.interface';
 
-export interface Commission {
-    type: string;
-    applicable: boolean;
-    amount: number;
-}
-const CommissionSchema = new mongoose.Schema({
+
+const CommissionSchema = new mongoose.Schema<ICommission>({
     type: { type: String, enum: ['percentage', 'number'], required: true },
     applicable: { type: String, enum: ['user', 'mechanic'], required: true },
     amount: { type: Number, required: true }
@@ -13,4 +10,4 @@ const CommissionSchema = new mongoose.Schema({
     timestamps : true
 });
 
-export const CommissionModel = mongoose.model('Commission', CommissionSchema);
+export const Commission = mongoose.model('Commission', CommissionSchema);

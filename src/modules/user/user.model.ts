@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IPendingUser, IUser, IOTP } from "./user.interface";
+import { generateUniqueId } from "../Order/order.utils";
 
 const PendingUserSchema = new Schema<IPendingUser>(
   {
@@ -94,7 +95,11 @@ const UserSchema = new Schema<IUser>(
     isActive : {
       type : Boolean,
       default : false
-    }
+    },
+    uniqueUserId: {
+      type: String,
+      default: generateUniqueId,
+    },
   },
   { timestamps: true },
 );

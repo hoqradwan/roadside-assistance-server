@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { generateUniqueId } from '../Order/order.utils';
 
 export interface IMechanic extends Document {
     user: Types.ObjectId;
@@ -6,8 +7,9 @@ export interface IMechanic extends Document {
     rating: number;
     experience: number;
     description: string;
-    serviceCount:number;
-    isAvailable:boolean;
+    serviceCount: number;
+    isAvailable: boolean;
+    uniqueMechanicId: string;
 }
 
 const MechanicSchema = new Schema<IMechanic>({
@@ -16,8 +18,10 @@ const MechanicSchema = new Schema<IMechanic>({
     rating: { type: Number, required: true, default: 0 },
     experience: { type: Number, required: true },
     description: { type: String, default: "" },
-    serviceCount : {type : Number, default : 0},
-    isAvailable : {type : Boolean, default : true}
+    serviceCount: { type: Number, default: 0 },
+    isAvailable: { type: Boolean, default: true },
+    uniqueMechanicId: { type: String, default: generateUniqueId },
+
 });
 
 const Mechanic = model<IMechanic>('Mechanic', MechanicSchema);

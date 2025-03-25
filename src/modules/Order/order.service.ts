@@ -57,13 +57,27 @@ export const getOrdersByMechanicFromDB = async (mechanicid: string, userData: Pa
 
 export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) => {
     const order = await Order.findByIdAndUpdate(orderId, { status: 'completed' }, { new: true });
+    
+    // Check if order exists
     if (!order) {
         throw new AppError(httpStatus.NOT_FOUND, "Order does not exist");
     }
+
+    // Find the commission
     const commission = await Commission.findOne({ applicable: "mechanic" });
+    
+    // Ensure commission exists
+    if (!commission) {
+        throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+    }
+
+    // Calculate earnings
     const earning = (order?.total ?? 0) - (commission?.amount ?? 0);
-    const mechanicWallet = await Wallet.findByIdAndUpdate(
-        mechanicId,
+  
+
+    // Update the wallet with the calculated earning
+    const updatedWallet = await Wallet.findOneAndUpdate(
+        { user: mechanicId },
         {
             $inc: {
                 totalEarnings: earning,
@@ -72,5 +86,12 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
         },
         { new: true }
     );
-    return mechanicWallet;
-}
+
+    // Check if the wallet was updated successfully
+    if (!updatedWallet) {
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update wallet");
+    }
+
+    // Return the updated wallet
+    return updatedWallet;
+};

@@ -1,10 +1,16 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { getWalletOverview } from './wallet.controller';
 import { adminMiddleware } from '../../middlewares/auth';
+import { CustomRequest } from '../../utils/customRequest';
+import Wallet from './wallet.model';
 
 const router = Router();
 
 router.get('/',adminMiddleware("admin"), getWalletOverview);
+router.post("/",adminMiddleware("mechanic"),async(req:CustomRequest,res:Response)=>{
+    const wallet = await Wallet.create({user: req.user.id, ...req.body});
+    res.send(wallet);
+})
 // router.get('/wallet/:id', getWallet);
 // router.put('/wallet/:id', updateWallet);
 // router.delete('/wallet/:id', deleteWallet);

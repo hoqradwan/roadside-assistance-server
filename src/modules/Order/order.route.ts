@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { createOrder, getOrders, getSingleOrder, getOrdersByStatus ,getOrdersByMechanic} from './order.controller';
+import { createOrder, getOrders, getSingleOrder, getOrdersByStatus ,getOrdersByMechanic, markAsComplete} from './order.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
 
 // Create a new order
 router.post('/', adminMiddleware("user"), createOrder);
+router.post('/markComplete/:orderId', adminMiddleware("mechanic"), markAsComplete);
 router.get('/status',adminMiddleware("admin","mechanic"), getOrdersByStatus);
 router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
 router.get('/:id', getSingleOrder);

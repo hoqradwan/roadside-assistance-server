@@ -4,7 +4,7 @@ import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
 
-router.post('/',adminMiddleware("mechanic"), createWithdraw);
+router.post('/withdraw-request',adminMiddleware("mechanic"), createWithdraw);
 router.post('/mark-paid/:mechanicId',adminMiddleware("admin"), markAsPaid);
 
 

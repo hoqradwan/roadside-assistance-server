@@ -2,16 +2,26 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Order from "./order.model";
-import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB } from "./order.service";
+import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, markAsCompleteIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: Request, res: Response) => {
-  // Create a new order
   const result = await createOrderIntoDB(req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Order created successfully",
+    data: result,
+  });
+})
+export const markAsComplete = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { orderId } = req.params;
+  const {id:mechanicId} = req.user;
+  const result = await markAsCompleteIntoDB(orderId,mechanicId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order completed successfully",
     data: result,
   });
 })

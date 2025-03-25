@@ -7,6 +7,7 @@ export interface IOrder extends Document {
     service:mongoose.Schema.Types.ObjectId;
     vehicle: mongoose.Schema.Types.ObjectId;
     status: string;
+    total : number;
 }
 const OrderSchema: Schema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

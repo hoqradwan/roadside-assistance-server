@@ -1,7 +1,6 @@
 // totalWithdrawRequests: { type: Number, required: true, default: 0 },
 // totalPaidAmount: { type: Number, required: true, default: 0 },
 
-import Order from "../Order/order.model";
 import Wallet from "../Wallet/wallet.model";
 import Withdraw from "./withdraw.model";
 

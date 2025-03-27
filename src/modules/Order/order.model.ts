@@ -16,7 +16,6 @@ const OrderSchema: Schema = new Schema({
     vehicle: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle',required: true },
     status: { type: String, required: true, enum: ['pending', 'processing', 'completed', 'cancelled'] , default: 'pending'},    
     total : {type : Number, required : true},
-    profit: {type : Number, required : true},
     payment : {type : String, enum:["online","cash"], required : true, default : "online"},
     uniqueOrderId: { type: String, default: generateUniqueId },
 }, {

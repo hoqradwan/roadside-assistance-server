@@ -21,7 +21,7 @@ export const markAsPaid = catchAsync(async (req: CustomRequest, res: Response) =
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Withdraw request created successfully",
+        message: "Withdraw request accepted successfully",
         data: result
     })
 });

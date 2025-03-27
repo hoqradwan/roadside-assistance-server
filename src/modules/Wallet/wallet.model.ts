@@ -11,6 +11,7 @@ interface IWallet extends Document {
 const WalletSchema: Schema = new Schema({
     totalEarnings: { type: Number, required: true, default: 0 },
     availableBalance: { type: Number, required: true, default: 0 },
+    withdrawnAmount: { type: Number, required: true, default: 0 },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 }, {
     timestamps: true

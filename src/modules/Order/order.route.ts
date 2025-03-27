@@ -9,7 +9,7 @@ router.post('/', adminMiddleware("user"), createOrder);
 router.post('/markComplete/:orderId', adminMiddleware("mechanic"), markAsComplete);
 router.get('/status',adminMiddleware("admin","mechanic"), getOrdersByStatus);
 router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
-router.get('/:id', getSingleOrder);
+router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
 router.get('/all',adminMiddleware("admin"), getOrders);
 // router.get('/',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
 

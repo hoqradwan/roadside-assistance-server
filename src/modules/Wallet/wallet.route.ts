@@ -7,7 +7,7 @@ import Wallet from './wallet.model';
 const router = Router();
 
 router.get('/',adminMiddleware("admin"), getWalletOverview);
-router.post("/",adminMiddleware("mechanic"),async(req:CustomRequest,res:Response)=>{
+router.post("/",adminMiddleware("admin"),async(req:CustomRequest,res:Response)=>{
     const wallet = await Wallet.create({user: req.user.id, ...req.body});
     res.send(wallet);
 })

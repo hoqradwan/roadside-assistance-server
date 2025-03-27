@@ -1,11 +1,10 @@
-import { Jwt } from "jsonwebtoken";
-import { IMechanic } from "../Mechanic/mechanic.model";
 import Order, { IOrder } from "./order.model";
 import { IUser } from "../user/user.interface";
 import Wallet from "../Wallet/wallet.model";
 import { Commission } from "../Commission/commission.model";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
+import Admin from "../Admin/admin.model";
 
 export const createOrderIntoDB = async (orderData: IOrder) => {
     const order = await Order.create(orderData);
@@ -56,24 +55,79 @@ export const getOrdersByMechanicFromDB = async (mechanicid: string, userData: Pa
 }
 
 export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) => {
-    const order = await Order.findByIdAndUpdate(orderId, { status: 'completed' }, { new: true });
-    
+    const order = await Order.findOne({ _id: orderId, mechanic: mechanicId });
+
     // Check if order exists
     if (!order) {
-        throw new AppError(httpStatus.NOT_FOUND, "Order does not exist");
+        throw new AppError(httpStatus.NOT_FOUND, "Order does not exist or does not belong to this mechanic");
+    }
+    if (order.status === "completed") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Order is already completed");
     }
 
+    const mechanicWallet = await Wallet.findOne({ user: mechanicId });
+    if (!mechanicWallet) {
+        await Wallet.create({ user: mechanicId });
+    }
+    await Order.findByIdAndUpdate(orderId, { status: "completed" }, { new: true })
     // Find the commission
     const commission = await Commission.findOne({ applicable: "mechanic" });
-    
+
     // Ensure commission exists
     if (!commission) {
         throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
     }
+    let earning, commissionUser, profitTotal;
+    const orderTotal = order?.total;
+    if (commission.type === "number") {
+        // Calculate earnings
+        earning = (order?.total ?? 0) - (commission?.amount ?? 0);
+        commissionUser = await Commission.findOne({ applicable: "user" });
+        if (commissionUser?.type === "number") {
+            profitTotal = (commission.amount ?? 0) + (commissionUser?.amount ?? 0);
+            await Admin.findOneAndUpdate({ role: "admin" }, {
+                $inc: {
+                    totalEarnings: orderTotal,
+                    profit: profitTotal
+                }
+            })
+        } else if (commissionUser?.type === "percentage") {
+            const userProfit = (order.total * (commissionUser?.amount ?? 0)) / 100
+            profitTotal = (commission.amount ?? 0) + userProfit;
+            await Admin.findOneAndUpdate({ role: "admin" }, {
+                $inc: {
+                    totalEarnings: orderTotal,
+                    profit: profitTotal
+                }
+            })
+        }
 
-    // Calculate earnings
-    const earning = (order?.total ?? 0) - (commission?.amount ?? 0);
-  
+    } else if (commission.type === "percentage") {
+        const commissionPercentageToNumber = ((commission?.amount ?? 0) / 100) * order?.total;
+        earning = (order?.total ?? 0) - commissionPercentageToNumber;
+        commissionUser = await Commission.findOne({ applicable: "user" });
+        if (commissionUser?.type === "number") {
+            profitTotal = commissionPercentageToNumber + (commissionUser?.amount ?? 0);
+            await Admin.findOneAndUpdate({ role: "admin" }, {
+                $inc: {
+                    totalEarnings: orderTotal,
+                    profit: profitTotal
+                }
+            })
+        } else if (commissionUser?.type === "percentage") {
+            const commissionPercentageToNumber = ((commission?.amount ?? 0) / 100) * orderTotal;
+            const userCommissionPercentageToNumber = (commissionUser?.amount / 100) * orderTotal
+            profitTotal = commissionPercentageToNumber + userCommissionPercentageToNumber;
+            await Admin.findOneAndUpdate({ role: "admin" }, {
+                $inc: {
+                    totalEarnings: orderTotal,
+                    profit: profitTotal
+                }
+            })
+        }
+
+    }
+
 
     // Update the wallet with the calculated earning
     const updatedWallet = await Wallet.findOneAndUpdate(

@@ -4,7 +4,7 @@ import Wallet from "./wallet.model";
 export const getWalletOverviewFromDB = async (mechanicId: string) => {
 
   const totalCompletedOrder = await Order.find({ mechanic: mechanicId, status: "completed" }).countDocuments();
-
+  const activeOrders = await Order.find({status : "processing"}).countDocuments();
   // Fetch wallet information for the mechanic
   const mechanicWalletOverview = await Wallet.find({ user: mechanicId });
 
@@ -12,7 +12,8 @@ export const getWalletOverviewFromDB = async (mechanicId: string) => {
   if (mechanicWalletOverview.length > 0) {
     const updatedWalletOverview = {
       ...mechanicWalletOverview[0].toObject(), // Convert wallet document to plain object
-      totalCompletedOrder: totalCompletedOrder, // Add totalCompletedOrder to the object
+      totalCompletedOrder: totalCompletedOrder, 
+      activeOrders
     };
 
     return updatedWalletOverview;

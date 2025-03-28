@@ -21,7 +21,12 @@ const MechanicSchema = new Schema<IMechanic>({
     serviceCount: { type: Number, default: 0 },
     isAvailable: { type: Boolean, default: true },
     uniqueMechanicId: { type: String, default: generateUniqueId },
+});
 
+// Add a pre-save hook to update serviceCount based on the length of services
+MechanicSchema.pre('save', function (next) {
+    this.serviceCount = this.services.length;
+    next();
 });
 
 const Mechanic = model<IMechanic>('Mechanic', MechanicSchema);

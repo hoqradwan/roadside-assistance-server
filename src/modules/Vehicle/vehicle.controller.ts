@@ -28,7 +28,6 @@ export const getVehicles = catchAsync(async (req :CustomRequest, res : Response)
 
 export const getSingleVehicle = catchAsync(async (req:CustomRequest, res:Response) => {
   const result = await getSingleVehicleFromDB(req.params.id, req.user);
-  console.log("result",result);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,

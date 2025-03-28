@@ -7,18 +7,13 @@ import Vehicle from "../Vehicle/vehicle.model";
 import Withdraw from "../Withdraw/withdraw.model";
 import Admin from "./admin.model";
 import Wallet from "../Wallet/wallet.model";
+import mongoose from "mongoose";
 
 export const getOverviewFromDB = async () => {
     const totalOrders = await Order.countDocuments();
     const totalVehicles = await Vehicle.countDocuments();
     const totalMechanics = await Mechanic.countDocuments();
     const totalUsers = await UserModel.countDocuments();
-
-    // Calculate total revenue (sum of all revenues)
-    // const totalRevenueResult = await Revenue.aggregate([
-    //   { $group: { _id: null, totalRevenue: { $sum: "$amount" } } }
-    // ]);
-    // const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].totalRevenue : 0;
 
     return {
         totalOrders,
@@ -50,20 +45,58 @@ export const getAdminWalletOverviewFromDB = async () => {
 
 
 export const acceptWithdrawRequestIntoDB = async (mechanicId: string) => {
-    const withdraw = await Withdraw.findOneAndUpdate({ user: mechanicId }, { status: "completed" });
-    if (!withdraw) {
-        throw new AppError(httpStatus.NOT_FOUND, "Withdraw request not found");
+    const session = await mongoose.startSession();  // Start a session
+
+    try {
+        session.startTransaction();  // Start a new transaction
+
+        // 1. Update the withdraw request status to "completed"
+        const withdraw = await Withdraw.findOneAndUpdate(
+            { user: mechanicId },
+            { status: "completed" },
+            { session }
+        );
+
+        if (!withdraw) {
+            throw new AppError(httpStatus.NOT_FOUND, "Withdraw request not found");
+        }
+
+        // 2. Update the mechanic's wallet: deduct the amount from available balance and add to withdrawn amount
+        const mechanicWallet = await Wallet.findOneAndUpdate(
+            { user: mechanicId },
+            {
+                $inc: {
+                    availableBalance: -(withdraw?.amount ?? 0),
+                    withdrawnAmount: withdraw?.amount
+                }
+            },
+            { session, new: true }
+        );
+
+        if (!mechanicWallet) {
+            throw new AppError(httpStatus.NOT_FOUND, "No wallet found for this mechanic");
+        }
+
+        // 3. Update the admin's wallet: increase the total paid amount by the withdraw amount
+        const adminWallet = await Admin.updateOne(
+            { role: "admin" },
+            { $inc: { totalPaidAmount: withdraw?.amount } },
+            { session }
+        );
+
+        if (adminWallet.modifiedCount === 0) {
+            throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update admin wallet");
+        }
+
+        // Commit the transaction if all operations succeed
+        await session.commitTransaction();
+
+        return adminWallet;
+    } catch (error) {
+        // If any error occurs, abort the transaction
+        await session.abortTransaction();
+        throw error;  // Re-throw the error so it can be caught by the caller
+    } finally {
+        session.endSession();  // End the session
     }
-    await Wallet.findOneAndUpdate({ user: mechanicId }, {
-        $inc: {
-            availableBalance: -(withdraw?.amount ?? 0),
-            withdrawnAmount: withdraw?.amount
-        }
-    })
-    const adminWallet = await Admin.updateOne({ role: "admin" }, {
-        $inc: {
-            totalPaidAmount: withdraw?.amount
-        }
-    })
-    return adminWallet;
-}
+};

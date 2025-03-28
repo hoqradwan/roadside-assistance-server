@@ -2,7 +2,7 @@ import { Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
-import { createWithdrawIntoDB, markAsPaidIntoDB } from "./withdraw.service";
+import { createWithdrawIntoDB,  getAllWithdrawRequestsFromDB,  markAsPaidIntoDB } from "./withdraw.service";
 
 export const createWithdraw = catchAsync(async (req: CustomRequest, res: Response) => {
     const { amount } = req.body;
@@ -22,6 +22,15 @@ export const markAsPaid = catchAsync(async (req: CustomRequest, res: Response) =
         statusCode: 200,
         success: true,
         message: "Withdraw request accepted successfully",
+        data: result
+    })
+});
+export const getAllWithdrawRequests = catchAsync(async (req: CustomRequest, res: Response) => {
+    const result = await getAllWithdrawRequestsFromDB();
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Withdraw request retrieved successfully",
         data: result
     })
 });

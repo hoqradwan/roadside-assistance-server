@@ -1,12 +1,6 @@
 import Order from "../Order/order.model";
 import { IReview } from "./review.interface";
 import Review from "./review.model"
-
-// export const createReviewIntoDB = async (reviewData: IReview, userId: string) => {
-//     const { user: _, ...restOfReviewData } = reviewData; 
-//     const review = await Review.create({ user: userId, ...restOfReviewData });
-//     return review;
-//   };
   
 export const createReviewIntoDB = async (reviewData: IReview, userId: string) => {
     const { order: orderId, rating, comment } = reviewData;
@@ -44,7 +38,15 @@ export const getReviewsFromDB = async()=>{
     const reviews = await Review.find();
     return reviews;
 }
-export const getReviewByMechanicFromDB = async(mechanicId: string)=>{
-    const reviews = await Review.find({mechanic : mechanicId});
+export const getReviewByMechanicFromDB = async (mechanicId: string) => {
+    if (!mechanicId) {
+        throw new Error('Mechanic ID is required');
+    }
+
+    const reviews = await Review.find({ mechanic: mechanicId });
+    if (!reviews || reviews.length === 0) {
+        throw new Error('No reviews found for this mechanic');
+    }
+
     return reviews;
-}
+};

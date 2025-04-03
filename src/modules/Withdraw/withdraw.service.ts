@@ -1,6 +1,3 @@
-// totalWithdrawRequests: { type: Number, required: true, default: 0 },
-// totalPaidAmount: { type: Number, required: true, default: 0 },
-
 import Mechanic from "../Mechanic/mechanic.model";
 import Wallet from "../Wallet/wallet.model";
 import Withdraw from "./withdraw.model";

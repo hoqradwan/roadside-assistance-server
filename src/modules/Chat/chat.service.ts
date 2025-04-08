@@ -1,31 +1,30 @@
+import httpStatus from "http-status";
+import { IChatMessage } from "./chat.interface";
 import { ChatMessage } from "./chat.model";
+import { io } from "../../utils/socket";
 
-// Function to save the chat message to the database
-export const saveChatMessage = async (senderId: string, receiverId: string, message: string) => {
-  const newMessage = new ChatMessage({
-    senderId,
-    receiverId,
-    message,
-  });
-
-  // Save the message to the database
-  await newMessage.save();
-  return newMessage;
+export const sendMessageIntoDB = async (payload : Partial<IChatMessage>) => {
+  // Create a new chat message and save to DB
+  const message = await ChatMessage.create(payload);
+  if (typeof payload?.receiver === 'string') {
+  
+    io?.to(payload.receiver).emit(`new-message`, {
+      code: httpStatus.OK,
+      message: 'Message sent successfully',
+      data: message,
+    });
+  }
+  return message;
 };
 
-export const getChatHistoryFromDB = async (userId: string, otherUserId: string) => {
-    const chatHistory = await ChatMessage.find({
-      $or: [
-        { senderId: userId, receiverId: otherUserId },
-        { senderId: otherUserId, receiverId: userId },
-      ],
-    }).sort({ timestamp: 1 }); // Sort messages by timestamp in ascending order
-  
-    return chatHistory;
-  };
-  export const createChatSessionIntoDB = async (userId: string, receiverId: string) => {
-    // You can add logic here to create a session or initialize a conversation
-    // For now, we will just return a mock session object
-    const session = { sessionId: `${userId}-${receiverId}`, userId, receiverId };
-    return session;
-  };
+ export const getChatHistoryFromDB = async (sender : string, receiver : string) => {
+  // Get all messages between sender and receiver
+  // Sort by timestamp in ascending order
+  // Return the chat history
+  return await ChatMessage.find({
+    $or: [
+      { sender, receiver },
+      { sender: receiver, receiver: sender }
+    ]
+  }).sort('timestamp');
+};

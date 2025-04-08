@@ -1,35 +1,22 @@
-import { Socket } from "socket.io";
-import { createChatSessionIntoDB, getChatHistoryFromDB, saveChatMessage } from "./chat.service";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-
-// Function to handle chat messages received from clients
-export const handleChatMessage = async (socket: Socket, senderId: string, receiverId: string, message: string) => {
-    console.log("Received message:", message);
-
-    // Save the message to the database
-    const savedMessage = await saveChatMessage(senderId, receiverId, message);
-
-    // Emit the chat message to the receiver
-    socket.emit(`chat::${receiverId}`, {
-        senderId,
-        message: savedMessage.message,
-    });
-
-    // Optionally, you can emit a response back to the sender
-    socket.emit(`chat::${senderId}`, {
-        senderId,
-        message: savedMessage.message,
-    });
-};
-
+import { getChatHistoryFromDB, sendMessageIntoDB } from "./chat.service";
+import { IChatMessage } from "./chat.interface";
+import { CustomRequest } from "../../utils/customRequest";
+import { Response } from "express";
+import AppError from "../../errors/AppError";
+import httpStatus from "http-status";
 
 export const getChatHistory = catchAsync(async (req: any, res: any) => {
-    const { userId, otherUserId } = req.params;
-    console.log("Get chat history for:", userId, otherUserId);
+    const { receiver } = req.params;
+    const { id: userId } = req.user;
 
+    if(receiver === userId ) {
+      throw  new AppError(httpStatus.FORBIDDEN,"You cannnt chat with yourself");
+    }
+        
     // Fetch chat history from the database
-    const chatHistory = await getChatHistoryFromDB(userId, otherUserId);
+    const chatHistory = await getChatHistoryFromDB(userId, receiver);
 
     sendResponse(res, {
         statusCode: 200,
@@ -40,15 +27,22 @@ export const getChatHistory = catchAsync(async (req: any, res: any) => {
 });
 
 
-export const createChatSession = catchAsync(async (req: any, res: any) => {
-    const { userId, receiverId } = req.body;
+export const sendMessage = catchAsync(async (req: CustomRequest, res: Response) => {
+    const { id: sender } = req.user;
+    const { receiver, message } = req.body;
   
-      // Create a new chat session using the service (if needed)
-      const chatSession = await createChatSessionIntoDB(userId, receiverId);
-      sendResponse(res, {
-        statusCode: 200,    
-        success: true,     
-        message: "Chat session created successfully", 
-        data: chatSession   
-      })
+    const payload: Partial<IChatMessage> = {
+        sender,
+        receiver,
+        message,
+    }
+
+    // Create a new chat session using the service (if needed)
+    const chatSession = await sendMessageIntoDB(payload);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Message sent successfully",
+        data: chatSession
+    })
 });

@@ -1,11 +1,13 @@
-import { Router } from 'express';
-import { createChatSession, getChatHistory } from './chat.controller';
+import express from 'express';
+import { getChatHistory, sendMessage } from './chat.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
-const router = Router();
+const router = express.Router();
 
-router.get("/history/:userId/:otherUserId", getChatHistory);
-router.post("/session", createChatSession);
-  
+// Get chat history between two users
+router.get('/:receiver',adminMiddleware("admin","user","mechanic"), getChatHistory);
 
-export const ChatRoutes =  router;
+// Send a message between two users
+router.post('/send',adminMiddleware("user","mechanic"), sendMessage);
+
+export const ChatRoutes = router;

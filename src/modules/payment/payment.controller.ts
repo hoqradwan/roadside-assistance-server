@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 import httpStatus from "http-status";
 import stripe from "stripe";
-import { emitNotification } from "../../utils/socket";
+// import { emitNotification } from "../../utils/socket";
 import { JWT_SECRET_KEY, STRIPE_SECRET_KEY } from "../../config";
 import catchAsync from "../../utils/catchAsync";
 import sendError from "../../utils/sendError";
@@ -269,12 +269,12 @@ export const paymentCreate = catchAsync(async (req: Request, res: Response) => {
     const formattedExpiryDate = `${day}${suffix} ${expiryDate.toLocaleString("en-US", { month: "long" })} ${expiryDate.getFullYear()}`;
 
     // Emit notifications after successful payment
-    await emitNotification({
-      userId: user._id,
-      userMsg: `You successfully purchased the subscription! It is valid until ${formattedExpiryDate}.`,
+    // await emitNotification({
+    //   userId: user._id,
+    //   userMsg: `You successfully purchased the subscription! It is valid until ${formattedExpiryDate}.`,
 
-      adminMsg: `${user.name} purchased a  subscription with the transaction ID: "${transactionId}".`,
-    });
+    //   adminMsg: `${user.name} purchased a  subscription with the transaction ID: "${transactionId}".`,
+    // });
 
     // Send success response with the formatted expiry date
     return sendResponse(res, {

@@ -1,345 +1,88 @@
-import { Server as HttpServer } from "http";
-import { Server as SocketIOServer, Socket } from "socket.io";
-import { UserModel } from "../modules/user/user.model";
-import { NotificationModel } from "../modules/notifications/notification.model";
-import { INotification } from "../modules/notifications/notification.interface";
-import { handleChatMessage } from "../modules/Chat/chat.controller";
+import { logger } from '../logger/logger';
+import { UserModel } from '../modules/user/user.model';
+import colors from 'colors';
+import mongoose from 'mongoose';
+import { Socket } from 'socket.io'; // Import Socket type for better typing
+import { Server as HttpServer } from 'http';
+import { Server } from 'socket.io';
 
-let io: SocketIOServer;
+// Extend the Socket interface to include userId
+declare module 'socket.io' {
+  interface Socket {
+    userId?: string; // Make userId optional
+  }
+}
+let io : Server | undefined; // Declare io as a Server type or undefined
+const initSocketIO = (server: HttpServer) => {
+   io = new Server(server); // Initialize Socket.IO with the server
 
-// Initialize Socket.IO
-export const initSocketIO = async (server: HttpServer): Promise<void> => {
-  console.log("Initializing Socket.IO server...");
+  io.on('connection', (socket: Socket) => {  // Add the `Socket` type to socket
+    logger.info(colors.blue('🔌🟢 A user connected'));
 
-  const { Server } = await import("socket.io");
+    // Listen for user connection
+    socket.on('user-connected', (userId: string) => {
+      console.log('userId boomm!!!', userId);
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        logger.error(colors.red(`Invalid user ID: ${userId}`));
+        return;
+      }
 
-  io = new Server(server, {
-    cors: {
-      origin: "*", // Replace with your client's origin
-      methods: ["GET", "POST"],
-      allowedHeaders: ["my-custom-header"],
-      credentials: true,
-    },
+      socket.userId = userId; // Store userId on the socket
+      socket.join(userId); // Join a room corresponding to userId
+      logger.info(colors.green(`User ${userId} joined their notification room`));
+    });
+
+    // Handle user connection for the `user/connect` event
+    socket.on('user/connect', async ({ userId }: { userId: string }) => {  // Type the data structure
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        logger.error(colors.red(`Invalid user ID: ${userId}`));
+        return;
+      }
+
+      try {
+        socket.userId = userId;
+        socket.join(userId);  // Join user to their own room
+        socket.broadcast.to(userId).emit('user/inactivate', true);
+
+        // Update the user's online status in the database (commented out for now)
+        // await UserModel.updateOne({ _id: userId }, { $set: { isOnline: true } });
+
+        // Broadcast that the user has connected
+        socket.broadcast.emit('user/connect', userId);
+
+        logger.info(colors.green(`User ${userId} is now online.`));
+      } catch (error) {
+        logger.error(colors.red(`Error in user/connect: ${error}`));
+      }
+    });
+
+    // Handle user disconnect
+    const handleDisconnect = async () => {
+      if (!socket.userId || !mongoose.Types.ObjectId.isValid(socket.userId)) {
+        return;
+      }
+
+      try {
+        // Update user's online status to offline (commented out for now)
+        // await UserModel.updateOne(
+        //   { _id: socket.userId },
+        //   { $set: { isOnline: false } }
+        // );
+
+        // Broadcast that the user has disconnected
+        socket.broadcast.emit('user/disconnect', socket.userId);
+        logger.info(colors.yellow(`User ${socket.userId} is now offline.`));
+      } catch (error) {
+        logger.error(colors.red(`Error in handleDisconnect: ${error}`));
+      }
+    };
+
+    // Listen for the disconnect event
+    socket.on('disconnect', handleDisconnect);
+    socket.on('user/disconnect', handleDisconnect);
   });
 
-  console.log("Socket.IO server initialized!");
-
-  io.on("connection", (socket: Socket) => {
-    console.log("Socket just connected:", socket.id);
-
-      // Listen for chat messages from the client
-      socket.on("chatMessage", async ({ senderId, receiverId, message }: { senderId: string; receiverId: string; message: string }) => {
-        console.log("Chat message received from sender:", senderId, "to receiver:", receiverId);
-  
-        // Delegate the chat message handling to the controller
-        await handleChatMessage(socket, senderId, receiverId, message);
-      });
-  
-
-    // Emit notification for all users
-    socket.on("sendNotificationToAll", async ({ userMsg }: { userMsg: string }) => {
-      await emitNotificationForCreateStickers({ userMsg });
-    });
-
-    socket.on("disconnect", () => {
-      console.log(socket.id, "just disconnected");
-    });
-  });
+  logger.info(colors.green('Socket.IO initialized'));
 };
 
-// Emit Notification to User and Admin
-export const emitNotification = async ({
-  userId,
-  userMsg,
-  adminMsg,
-}: {
-  userId: string;
-  userMsg: string;
-  adminMsg: string;
-}): Promise<void> => {
-  if (!io) {
-    throw new Error("Socket.IO is not initialized");
-  }
-
-  // Get admin IDs
-  const admins = await UserModel.find({ role: "admin" }).select("_id");
-  const adminIds = admins.map((admin) => admin._id.toString());
-
-  // Notify the specific user
-  if (userMsg) {
-    io.emit(`notification::${userId}`, {
-      userId,
-      message: userMsg, // User message
-    });
-  }
-
-  // Notify all admins
-  if (adminMsg) {
-    adminIds.forEach((adminId) => {
-      io.emit(`notification::${adminId}`, {
-        adminId,
-        message: adminMsg, // Admin message
-      });
-    });
-  }
-
-  // Save notification to the database
-  await NotificationModel.create<INotification>({
-    userId,
-    adminId: adminIds,
-    adminMsg: adminMsg,
-    userMsg: userMsg,
-  });
-};
-
-// Emit Notification for All Users
-export const emitNotificationForCreateStickers = async ({
-  userMsg,
-}: {
-  userMsg: string;
-}): Promise<void> => {
-  if (!io) {
-    throw new Error("Socket.IO is not initialized");
-  }
-
-  // Get all users with role "user" (exclude admins)
-  const users = await UserModel.find({ role: "user" }).select("_id");
-  const userIds = users.map((user) => user._id.toString());
-
-  // Notify all users
-  if (userMsg) {
-    userIds.forEach((userId) => {
-      io.emit(`notification::${userId}`, {
-        userId,
-        message: userMsg,
-      });
-    });
-  }
-
-  // Save notification to the database for each user
-  const notifications = userIds.map((userId) => ({
-    userId,
-    userMsg,
-  }));
-
-  await NotificationModel.insertMany(notifications); // Save all notifications
-};
-
-// Emit Notification for User Role Change
-export const emitNotificationForChangeUserRole = async ({
-  userId,
-  userMsg,
-}: {
-  userId: string;
-  userMsg: string;
-}): Promise<void> => {
-  if (!io) {
-    throw new Error("Socket.IO is not initialized");
-  }
-
-  // Notify the specific user
-  if (userMsg) {
-    io.emit(`notification::${userId}`, {
-      userId,
-      message: userMsg,
-    });
-  }
-
-  // Save the notification to the database
-  await NotificationModel.create<INotification>({
-    userId,
-    userMsg,
-  });
-};
-
-
-// import { Server as HttpServer } from "http";
-// import { Server as SocketIOServer, Socket } from "socket.io";
-// import { UserModel } from "../modules/user/user.model";
-// import { NotificationModel } from "../modules/notifications/notification.model";
-// import { INotification } from "../modules/notifications/notification.interface";
-
-// let io: SocketIOServer;
-
-// // Initialize Socket.IO
-// export const initSocketIO = async (server: HttpServer): Promise<void> => {
-//   console.log("Initializing Socket.IO server...");
-
-//   const { Server } = await import("socket.io");
-
-//   io = new Server(server, {
-//     // Assign the initialized io instance to the io variable
-//     cors: {
-//       origin: "*", // Replace with your client's origin
-//       methods: ["GET", "POST"],
-//       allowedHeaders: ["my-custom-header"], // Add any custom headers if needed
-//       credentials: true, // If your client requires credentials
-//     },
-//   });
-
-//   console.log("Socket.IO server initialized!");
-
-//   io.on("connection", (socket: Socket) => {
-//     console.log("Socket just connected:", socket.id);
-
-//     // Listen for messages from the client
-//     socket.on("clientMessage", (message: string) => {
-//       console.log("Message received from client:", message);
-
-//       // Optionally, send a response back to the client
-//       socket.emit("serverMessage", `Server received: ${message}`);
-//     });
-
-//     socket.on("disconnect", () => {
-//       console.log(socket.id, "just disconnected");
-//     });
-//   });
-// };
-
-// // Emit Notification to User and Admin
-// // export const emitNotification = async ({
-// //   userId,
-// //   userMsg,
-// //   adminMsg,
-// // }: {
-// //   userId: string;
-// //   userMsg: ILocalizedString;
-// //   adminMsg: ILocalizedString;
-// // }): Promise<void> => {
-// //   if (!io) {
-// //     throw new Error("Socket.IO is not initialized");
-// //   }
-
-// //   // Get admin IDs
-// //   const admins = await UserModel.find({ role: "admin" }).select("_id");
-// //   const adminIds = admins.map((admin) => admin._id.toString());
-
-// //   // Notify the specific user
-// //   if (userMsg) {
-// //     io.emit(`notification::${userId}`, {
-// //       userId,
-// //       message: userMsg,
-// //     });
-// //   }
-
-// //   // Notify all admins
-// //   if (adminMsg) {
-// //     adminIds.forEach((adminId) => {
-// //       io.emit(`notification::${adminId}`, {
-// //         adminId,
-// //         message: adminMsg,
-// //       });
-// //     });
-// //   }
-
-// //   // Save notification to the database
-// //   await NotificationModel.create<INotification>({
-// //     userId,
-// //     adminId: adminIds,
-// //     adminMsg: adminMsg,
-// //     userMsg: userMsg ,
-// //   });
-// // };
-// export const emitNotification = async ({
-//   userId,
-//   userMsg,
-//   adminMsg,
-// }: {
-//   userId: string;
-//   userMsg: string;
-//   adminMsg: string;
-// }): Promise<void> => {
-//   if (!io) {
-//     throw new Error("Socket.IO is not initialized");
-//   }
-
-//   // Get admin IDs
-//   const admins = await UserModel.find({ role: "admin" }).select("_id");
-//   const adminIds = admins.map((admin) => admin._id.toString());
-
-//   // Notify the specific user
-//   if (userMsg) {
-//     io.emit(`notification::${userId}`, {
-//       userId,
-//       message: userMsg, // userMsg is passed as ILocalizedString (plain object)
-//     });
-//   }
-
-//   // Notify all admins
-//   if (adminMsg) {
-//     adminIds.forEach((adminId) => {
-//       io.emit(`notification::${adminId}`, {
-//         adminId,
-//         message: adminMsg, // adminMsg is passed as ILocalizedString (plain object)
-//       });
-//     });
-//   }
-
-//   // Save notification to the database
-//   await NotificationModel.create<INotification>({
-//     userId,
-//     adminId: adminIds,
-//     adminMsg: adminMsg, // Stored as ILocalizedString
-//     userMsg: userMsg, // Stored as ILocalizedString
-//   });
-// };
-
-// // Emit Notification for All Users
-// export const emitNotificationForCreateStickers = async ({
-//   userMsg,
-// }: {
-//   userMsg: string;
-// }): Promise<void> => {
-//   if (!io) {
-//     throw new Error("Socket.IO is not initialized");
-//   }
-
-//   // Get all users with role "user" (exclude admins)
-//   const users = await UserModel.find({ role: "user" }).select("_id");
-//   const userIds = users.map((user) => user._id.toString());
-
-//   // Notify all users
-//   if (userMsg) {
-//     userIds.forEach((userId) => {
-//       io.emit(`notification::${userId}`, {
-//         userId,
-//         message: userMsg,
-//       });
-//     });
-//   }
-
-//   // Save notification to the database for each user
-//   const notifications = userIds.map((userId) => ({
-//     userId,
-//     userMsg,
-//   }));
-
-//   await NotificationModel.insertMany(notifications); // Save all notifications
-// };
-
-// // Emit Notification for User Role Change
-// export const emitNotificationForChangeUserRole = async ({
-//   userId,
-//   userMsg,
-// }: {
-//   userId: string;
-//   userMsg: string;
-// }): Promise<void> => {
-//   if (!io) {
-//     throw new Error("Socket.IO is not initialized");
-//   }
-
-//   // Notify the specific user
-//   if (userMsg) {
-//     io.emit(`notification::${userId}`, {
-//       userId,
-//       message: userMsg,
-//     });
-//   }
-
-//   // Save the notification to the database
-//   await NotificationModel.create<INotification>({
-//     userId,
-//     userMsg,
-//   });
-// };
+export { initSocketIO , io};

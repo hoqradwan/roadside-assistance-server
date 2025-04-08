@@ -32,7 +32,7 @@ import {
   Nodemailer_GMAIL,
   Nodemailer_GMAIL_PASSWORD,
 } from "../../config";
-import { emitNotification } from "../../utils/socket";
+// import { emitNotification } from "../../utils/socket";
 import httpStatus from "http-status";
 import { CustomRequest } from "../../utils/customRequest";
 
@@ -350,11 +350,11 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
   const userMsg = "Welcome to LikeMine_App.";
   const adminMsg = `${name} has successfully registered.`;
 
-  await emitNotification({
-    userId: createdUser._id as string,
-    userMsg,
-    adminMsg,
-  });
+  // await emitNotification({
+  //   userId: createdUser._id as string,
+  //   userMsg,
+  //   adminMsg,
+  // });
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,

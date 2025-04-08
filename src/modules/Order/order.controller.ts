@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Order from "./order.model";
-import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, markAsCompleteIntoDB } from "./order.service";
+import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersFromDB, markAsCompleteIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: Request, res: Response) => {
@@ -27,11 +27,25 @@ export const markAsComplete = catchAsync(async (req: CustomRequest, res: Respons
 })
 
 export const getOrders = catchAsync(async (req: Request, res: Response) => {
-  const result = await Order.find({});
+  const { currentPage = 1, limit = 10 } = req.query;
+  const result = await getOrdersFromDB({
+    currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
+    limit: parseInt(limit as string),  // Ensure limit is a number
+})
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Orders fetched successfully",
+    data: result,
+  });
+})
+export const getOrdersByUser = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id } = req.user;
+  const result = await Order.find({user: id});
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Orders by user fetched successfully",
     data: result,
   });
 })

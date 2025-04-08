@@ -5,10 +5,29 @@ import { Commission } from "../Commission/commission.model";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import Admin from "../Admin/admin.model";
+import paginationBuilder from "../../utils/paginationBuilder";
 
 export const createOrderIntoDB = async (orderData: IOrder) => {
     const order = await Order.create(orderData);
     return order;
+}
+export const getOrdersFromDB = async ({
+    currentPage,
+    limit,
+}: {
+    currentPage: number;
+    limit: number;
+}) => {
+    const totalData = await Order.countDocuments();
+
+    // Use paginationBuilder to get pagination details
+    const paginationInfo = paginationBuilder({
+        totalData,
+        currentPage,
+        limit,
+    });
+    const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit);;
+    return { paginationInfo, data: orders };
 }
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
     const userId = userData?.id;  // The logged-in user's ID

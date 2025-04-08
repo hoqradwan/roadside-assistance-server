@@ -4,13 +4,13 @@ import catchAsync from "../../utils/catchAsync";
 import { Request, Response } from "express";
 import Favourite from "./favourite.model";
 import { CustomRequest } from "../../utils/customRequest";
+import { addFavouriteIntoDB } from "./favourite.service";
 
 export const addFavourite =catchAsync(async (req: CustomRequest, res: Response) => {
     const { mechanic } = req.body;
     const userId = req.user.id;
-    const existingFavourite = await Favourite.findOne({ mechanic, user: userId });
-    if (existingFavourite) throw new Error("mechanic already in favourites");
-    const result = await Favourite.create({ mechanic, user: userId });
+    const result = await addFavouriteIntoDB(mechanic, userId);
+   
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,

@@ -1,22 +1,16 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { generateUniqueId } from './order.utils';
+import { IOrder } from './order.interface';
 
-export interface IOrder extends Document {
-    user: mongoose.Schema.Types.ObjectId;
-    mechanic: mongoose.Schema.Types.ObjectId;
-    service:mongoose.Schema.Types.ObjectId;
-    vehicle: mongoose.Schema.Types.ObjectId;
-    status: string;
-    total : number;
-}
-const OrderSchema: Schema = new Schema({
+
+const OrderSchema: Schema = new Schema<IOrder>({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     mechanic: { type: mongoose.Schema.Types.ObjectId, ref: 'Mechanic', required: true },
-    service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service',required: true },
-    vehicle: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle',required: true },
-    status: { type: String, required: true, enum: ['pending', 'processing', 'completed', 'cancelled'] , default: 'pending'},    
-    total : {type : Number, required : true},
-    payment : {type : String, enum:["online","cash"], required : true, default : "online"},
+    services: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true }],
+    vehicle: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
+    status: { type: String, required: true, enum: ['pending', 'processing', 'completed', 'cancelled'], default: 'pending' },
+    total: { type: Number, required: true },
+    payment: { type: String, enum: ["online", "cash"], required: true, default: "online" },
     uniqueOrderId: { type: String, default: generateUniqueId },
 }, {
     timestamps: true

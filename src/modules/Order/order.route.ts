@@ -8,9 +8,9 @@ const router = Router();
 router.get('/user',adminMiddleware("admin","user"), getOrdersByUser);
 router.get('/status',adminMiddleware("admin","mechanic"), getOrdersByStatus);
 router.get('/all',adminMiddleware("admin"), getOrders);
-router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
-router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
 router.post('/', adminMiddleware("user"), createOrder);
+router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
+router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
 router.post('/markComplete/:orderId', adminMiddleware("mechanic"), markAsComplete);
 
 // router.get('/',adminMiddleware("admin","mechanic"), getOrdersByMechanic);

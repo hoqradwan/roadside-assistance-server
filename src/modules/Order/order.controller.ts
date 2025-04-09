@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Order from "./order.model";
-import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersFromDB, markAsCompleteIntoDB } from "./order.service";
+import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: Request, res: Response) => {
@@ -49,8 +49,9 @@ export const getOrdersByUser = catchAsync(async (req: CustomRequest, res: Respon
     data: result,
   });
 })
-export const getSingleOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await Order.findById(req.params.id);
+export const getSingleOrder = catchAsync(async (req: CustomRequest, res: Response) => {
+  const userdata = req.user;
+  const result = await getSingleOrderFromDB(req.params.id, userdata);
   sendResponse(res, {
     statusCode: 200,
     success: true,

@@ -1,4 +1,4 @@
-import Order, { IOrder } from "./order.model";
+import Order from "./order.model";
 import { IUser } from "../user/user.interface";
 import Wallet from "../Wallet/wallet.model";
 import { Commission } from "../Commission/commission.model";
@@ -6,8 +6,51 @@ import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import Admin from "../Admin/admin.model";
 import paginationBuilder from "../../utils/paginationBuilder";
+import { IOrder } from "./order.interface";
+import { UserModel } from "../user/user.model";
+import Mechanic from "../Mechanic/mechanic.model";
+import Vehicle from "../Vehicle/vehicle.model";
+import Service from "../Service/service.model";
 
 export const createOrderIntoDB = async (orderData: IOrder) => {
+    const existingUser = await UserModel.findById(orderData.user);
+    if (existingUser) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+    const existingMechanic = await Mechanic.findById(orderData.mechanic);
+    if (existingMechanic) {
+        throw new AppError(httpStatus.NOT_FOUND, "Mechanic not found");
+    }
+    const existingVehicle = await Vehicle.findById(orderData.vehicle);
+    if (existingVehicle) {
+        throw new AppError(httpStatus.NOT_FOUND, "Vehicle not found");
+    }
+    // const existingServices = await Service.find({ _id: { $in: orderData.services } });
+    // if (existingServices.length !== orderData.services.length) {
+    //     throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
+    // }
+    const mechanicServices = await Mechanic.find({services: {$eq: orderData.services}})
+    if(mechanicServices.length !== orderData.services.length){
+        throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide these services");
+        
+    }
+    const orderTotal = await Service.aggregate([
+        { $match: { _id: { $in: orderData.services } } },
+        { $group: { _id: null, total: { $sum: "$price" } } }
+    ]);
+    if (orderTotal.length === 0) {
+        throw new AppError(httpStatus.NOT_FOUND, "No services found for the given IDs");
+    }
+    let total = orderTotal[0].total;
+    const appService = await Commission.findOne({ applicable: "user" });
+    if(appService) {
+        if (appService.type === "number") {
+            total += appService.amount;
+        } else if (appService.type === "percentage") {
+            total += (total * appService.amount) / 100;
+        }
+    }
+    orderData.total = total; // Set the total in the order data
     const order = await Order.create(orderData);
     return order;
 }
@@ -28,6 +71,16 @@ export const getOrdersFromDB = async ({
     });
     const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit);;
     return { paginationInfo, data: orders };
+}
+
+export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
+    if (userData.role === 'user') {
+        const result = await Order.findOne({ user: userData.id }).populate('mechanic').populate('vehicle').populate('user');
+        return result;
+    }
+    const result = await Order.findById(orderId).populate('mechanic').populate('vehicle').populate('user');
+    return result;
+
 }
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
     const userId = userData?.id;  // The logged-in user's ID

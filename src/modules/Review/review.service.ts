@@ -25,7 +25,7 @@ export const createReviewIntoDB = async (reviewData: IReview, userId: string) =>
     const review = await Review.create({
       user: userId,
       order: orderId,
-      service: order.service,
+      service: order.services,
       mechanic: order.mechanic,
       rating,
       comment,

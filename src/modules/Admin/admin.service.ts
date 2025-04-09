@@ -101,3 +101,51 @@ export const acceptWithdrawRequestIntoDB = async (mechanicId: string) => {
         session.endSession();  // End the session
     }
 };
+
+export const getAnalyticsDataFromDB = async () => {
+    // Fetch total sales (total number of completed orders)
+    const totalSales = await Order.countDocuments({ status: "completed" });
+  
+    // Fetch total earnings (admin's total earnings)
+    const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
+  
+    // Fetch user activity (number of users registered per month)
+    const userActivity = await UserModel.aggregate([
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+  
+    // Fetch mechanic activity (number of orders completed by mechanics per month)
+    const mechanicActivity = await Order.aggregate([
+      { $match: { status: "completed" } },
+      {
+        $group: {
+          _id: { $month: "$completedAt" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+  
+    // Prepare the analytics data for frontend
+    const analyticsData = {
+      totalSales,
+      totalEarnings: totalEarnings?.totalEarnings || 0,
+      userActivity: userActivity.map((item) => ({
+        month: item._id,
+        count: item.count,
+      })),
+      mechanicActivity: mechanicActivity.map((item) => ({
+        month: item._id,
+        count: item.count,
+      })),
+    };
+  
+    return analyticsData;
+};
+  

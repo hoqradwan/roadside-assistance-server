@@ -72,7 +72,6 @@ export const getOrdersFromDB = async ({
     const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit);;
     return { paginationInfo, data: orders };
 }
-
 export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
     if (userData.role === 'user') {
         const result = await Order.findOne({ user: userData.id }).populate('mechanic').populate('vehicle').populate('user');
@@ -125,7 +124,6 @@ export const getOrdersByMechanicFromDB = async (mechanicid: string, userData: Pa
     const orders = await Order.find(query);
     return orders;
 }
-
 export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) => {
     const order = await Order.findOne({ _id: orderId, mechanic: mechanicId });
 

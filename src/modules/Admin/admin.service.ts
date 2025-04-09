@@ -14,12 +14,13 @@ export const getOverviewFromDB = async () => {
     const totalVehicles = await Vehicle.countDocuments();
     const totalMechanics = await Mechanic.countDocuments();
     const totalUsers = await UserModel.countDocuments();
-
+    const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
     return {
         totalOrders,
         totalVehicles,
         totalMechanics,
         totalUsers,
+        totalEarnings: totalEarnings?.totalEarnings || 0,
     }
 }
 export const getAdminWalletOverviewFromDB = async () => {

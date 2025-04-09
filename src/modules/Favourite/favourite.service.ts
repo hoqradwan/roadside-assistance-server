@@ -9,4 +9,7 @@ export const addFavouriteIntoDB = async (mechanic: string, userId: string) => {
     const result = await Favourite.create({ mechanic, user: userId });  
     return result;
   }
-
+export const getFavouritesFromDB = async (userId: string) => {
+    const result = await Favourite.find({ user: userId }).populate("mechanic");
+    return result
+  }

@@ -4,12 +4,12 @@ import catchAsync from "../../utils/catchAsync";
 import { Request, Response } from "express";
 import Favourite from "./favourite.model";
 import { CustomRequest } from "../../utils/customRequest";
-import { addFavouriteIntoDB } from "./favourite.service";
+import { addFavouriteIntoDB, getFavouritesFromDB } from "./favourite.service";
 
 export const addFavourite =catchAsync(async (req: CustomRequest, res: Response) => {
     const { mechanic } = req.body;
     const userId = req.user.id;
-    const result = await addFavouriteIntoDB(mechanic, userId);
+     await addFavouriteIntoDB(mechanic, userId);
    
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -20,12 +20,12 @@ export const addFavourite =catchAsync(async (req: CustomRequest, res: Response) 
 })
 
 export const getFavourites = catchAsync(async (req: CustomRequest, res: Response) => {
-    const userId = req.user.id;
-    const result = await Favourite.find({ user: userId }).populate("mechanic");
+  
+    const result = await getFavouritesFromDB(req.user.id);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Favourites fetched successfully",
+        message: "Favourites by user fetched successfully",
         data: result
     })
 })

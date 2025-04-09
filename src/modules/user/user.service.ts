@@ -62,7 +62,7 @@ export const getUserList = async (
   //const query: any = { _id: { $ne: adminId } };
 
   const query: any = {
-    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } }],
+    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } },{role: { $ne: "mechanic" }}],
   };
 
   if (date) {

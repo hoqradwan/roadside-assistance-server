@@ -3,7 +3,6 @@ import { Document, Types } from "mongoose";
 export type IPayment = {
   transactionId: string;
   userId: Types.ObjectId;
-  subscriptionId: Types.ObjectId;
   amount: number;
   paymentData: object;
   status: "completed" | "pending" | "failed";
@@ -16,6 +15,5 @@ export type IPaymentResult = {
   transactionId: string;
   amount: number;
   userName: string;
-  subscriptionName: string;
   createdAt: string;
 };

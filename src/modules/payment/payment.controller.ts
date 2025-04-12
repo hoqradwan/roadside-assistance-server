@@ -10,7 +10,6 @@ import sendResponse from "../../utils/sendResponse";
 import { PaymentModel } from "./payment.model";
 import { getAllPaymentFromDB } from "./payment.service";
 import { format, formatDate } from "date-fns";
-import { PromoCodeModel } from "../promoCode/promoCode.model";
 
 export const paymentCreate = catchAsync(async (req: Request, res: Response) => {
   try {
@@ -28,7 +27,7 @@ export const paymentCreate = catchAsync(async (req: Request, res: Response) => {
     };
     const userId = decoded.id; // Assuming the token contains the userId
 
-    const { subscriptionId, amount, transactionId } = req.body; // Accept amount and subscriptionId from body
+    const {  amount, transactionId } = req.body; // Accept amount and subscriptionId from body
 
     if (!transactionId) {
       return sendError(res, httpStatus.UNAUTHORIZED, {

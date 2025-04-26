@@ -879,3 +879,77 @@ export const setUserLocation = catchAsync(async (req: CustomRequest, res: Respon
     data: result,
   });
 });
+
+export const getNearbyMechanics = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { maxDistance = 10000 } = req.body;  // maxDistance in meters (default 5km)
+  const userId = req.user.id; // Get user ID from req.user
+  
+  // Fetch the user from the database using the userId
+  const user = await UserModel.findById(userId);
+  
+  // If user not found, return error
+  if (!user) {
+    return sendResponse(res, {
+      statusCode: 404,
+      success: false,
+      message: "User not found.",
+      data: null,
+    });
+  }
+
+  // Get the user's location (lat, lng)
+  const { coordinates } = user.location;
+
+  // If the user doesn't have valid location coordinates, return an error
+  if (!coordinates || coordinates.length < 2) {
+    return sendResponse(res, {
+      statusCode: 400,
+      success: false,
+      message: "User location is not set correctly.",
+      data: null,
+    });
+  }
+
+  const [lng, lat] = coordinates;  // Destructure the coordinates
+
+  // Query to find mechanics within a certain distance of the user's location
+  const nearbyMechanics = await UserModel.aggregate([
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [lng, lat] }, // User's coordinates
+        distanceField: "distance",  // Add the calculated distance in the 'distance' field
+        maxDistance: maxDistance,  // Maximum distance to search (in meters)
+        spherical: true,  // Enable spherical geometry for accurate distance calculation
+        query: { role: "mechanic", status: "active" }  // Only active mechanics
+      }
+    },
+    {
+      $project: {
+        name: 1,
+        email: 1,
+        phone: 1,
+        image: 1,
+        role: 1,
+        distance: 1  // Include distance in the result
+      }
+    }
+  ]);
+
+  // If no mechanics are found, return a message saying no nearby mechanics
+  if (nearbyMechanics.length === 0) {
+    return sendResponse(res, {
+      statusCode: 404,
+      success: false,
+      message: "No mechanics found nearby.",
+      data: nearbyMechanics,
+    });
+  }
+
+  // Return the list of nearby mechanics with their data
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Nearby mechanics found successfully.",
+    data: nearbyMechanics
+  });
+});

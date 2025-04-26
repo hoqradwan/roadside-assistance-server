@@ -234,8 +234,8 @@ export const forgotPassword = catchAsync(
 
     const emailContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0f0f0; padding: 20px;">
-      <h1 style="text-align: center; color: #452778; font-family: 'Times New Roman', Times, serif;">
-        Like<span style="color:black; font-size: 0.9em;">Mine</span>
+      <h1 style="text-align: center; color: #006bff; font-family: 'Times New Roman', Times, serif;">
+        Like<span style="color:black; font-size: 0.9em;">Beep Roadside</span>
       </h1>
       <div style="background-color: white; padding: 20px; border-radius: 5px;">
         <h2 style="color:#d3b06c">Hello!</h2>
@@ -245,7 +245,7 @@ export const forgotPassword = catchAsync(
         </div>
         <p>This OTP will expire in 10 minutes.</p>
         <p>If you did not request a password reset, no further action is required.</p>
-        <p>Regards,<br>LikeMine</p>
+        <p>Regards,<br>Beep Roadside</p>
       </div>
       <p style="font-size: 12px; color: #666; margin-top: 10px;">If you're having trouble copying the OTP, please try again.</p>
     </div>
@@ -852,3 +852,30 @@ export const getUserToMechanicDistance = async (req: Request, res: Response) => 
     });
   }
 };
+
+export const setUserLocation = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { lat, lng } = req.body;  // Ensure that lat and lng are passed correctly in the body
+  const { id: userId } = req.user;  // Get user ID from the authenticated user
+
+  const user = await findUserById(userId);  // Find the user by ID
+  if (!user) {
+    return sendError(res, httpStatus.NOT_FOUND, {
+      message: "User not found.",
+    });
+  }
+
+  // Correct the coordinates array to only contain two values
+  // Make sure the order is correct: [longitude, latitude]
+  user.location.coordinates = [lng, lat];  // Ensure lng is the first and lat is the second value
+
+  // Save the updated user object
+  const result = await user.save();
+
+  // Send a success response
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Location updated successfully.",
+    data: result,
+  });
+});

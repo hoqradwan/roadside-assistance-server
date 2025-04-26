@@ -17,9 +17,11 @@ import {
   adminloginUser,
   mechanicloginUser,
   getUserToMechanicDistance,
+  setUserLocation,
 } from "./user.controller";
 import upload from "../../middlewares/fileUploadNormal";
 import { adminMiddleware } from "../../middlewares/auth";
+import { set } from "mongoose";
 
 const router = express.Router();
 router.post(
@@ -43,6 +45,7 @@ router.get("/all", adminMiddleware("admin"), getAllUsers);
 router.get("/:userId/:mechanicId", getUserToMechanicDistance);
 
 router.post("/block-user", adminMiddleware("admin"), BlockUser);
+router.post("/set-location", adminMiddleware("user","mechanic"), setUserLocation);
 
 router.post("/delete", adminMiddleware("admin"), deleteUser);
 

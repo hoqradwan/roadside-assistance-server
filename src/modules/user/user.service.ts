@@ -191,7 +191,6 @@ export const userDelete = async (id: string): Promise<void> => {
 const AVERAGE_SPEED_KMPH = 30; // Adjust based on your use case
 
 export const getDistanceAndETA = async (userId: string, mechanicId: string) => {
-  console.log("in distance")
   const user = await UserModel.findById(userId);
   // if (!user || !user.location || !user.location.lat || !user.location.lng) {
   //   throw new AppError(httpStatus.BAD_REQUEST, "User or location not found");
@@ -200,7 +199,6 @@ export const getDistanceAndETA = async (userId: string, mechanicId: string) => {
   // Find the mechanic user
   const mechanicUser = await UserModel.findById(mechanicId);
 
-  console.log(mechanicUser)
 
   // if (
   //   !mechanicUser ||

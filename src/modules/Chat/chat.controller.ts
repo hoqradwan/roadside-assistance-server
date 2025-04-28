@@ -6,6 +6,7 @@ import { CustomRequest } from "../../utils/customRequest";
 import { Response } from "express";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 
 export const getChatHistory = catchAsync(async (req: any, res: any) => {
     const { receiver } = req.params;
@@ -26,23 +27,42 @@ export const getChatHistory = catchAsync(async (req: any, res: any) => {
     });
 });
 
-
 export const sendMessage = catchAsync(async (req: CustomRequest, res: Response) => {
     const { id: sender } = req.user;
-    const { receiver, message } = req.body;
+    console.log("Sender ID:", sender); // Debugging line to check sender ID
+    const { receiver, message } = req.body; // Changed from 'message' to 'content' to match the socket implementation
   
-    const payload: Partial<IChatMessage> = {
-        sender,
-        receiver,
-        message,
+    // Validate receiver ID
+    if (!mongoose.Types.ObjectId.isValid(receiver)) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Invalid recipient ID');
     }
 
-    // Create a new chat session using the service (if needed)
-    const chatSession = await sendMessageIntoDB(payload);
+    // Create and send message
+    const result = await sendMessageIntoDB(sender, receiver, message);
+
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: httpStatus.OK,
         success: true,
         message: "Message sent successfully",
-        data: chatSession
-    })
+        data: result
+    });
 });
+// export const sendMessage = catchAsync(async (req: CustomRequest, res: Response) => {
+//     const { id: sender } = req.user;
+//     const { receiver, message } = req.body;
+  
+//     const payload: Partial<IChatMessage> = {
+//         sender,
+//         receiver,
+//         message,
+//     }
+
+//     // Create a new chat session using the service (if needed)
+//     const chatSession = await sendMessageIntoDB(payload);
+//     sendResponse(res, {
+//         statusCode: 200,
+//         success: true,
+//         message: "Message sent successfully",
+//         data: chatSession
+//     })
+// });

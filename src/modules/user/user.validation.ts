@@ -12,7 +12,6 @@ export const validateUserInput = (
   role : string
 ): ValidationResult | null => {
 
-  // console.log({name,email,password});
 
   if (!name || !email || !password) {
     return { isOk: false, message: "Please fill all the fields" };

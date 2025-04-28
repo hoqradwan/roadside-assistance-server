@@ -82,7 +82,6 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
     expiresIn: "7d",
   });
 
-  console.log("====>>>> execute this line")
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -337,7 +336,6 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
   const { name, password, role } = (await getUserRegistrationDetails(
     email,
   )) as IPendingUser;
-  //console.log(objective, "objective from controller");
   const hashedPassword = await hashPassword(password);
 
   const { createdUser } = await createUser({
@@ -684,7 +682,6 @@ export const adminloginUser = catchAsync(
     // }
 
     const user = await findUserByEmail(email);
-    console.log({user})
     if (!user) {
       return sendError(res, httpStatus.NOT_FOUND, {
         message:
@@ -696,7 +693,6 @@ export const adminloginUser = catchAsync(
     }
 
     // check admin or not
-    //  console.log(user,"user")
     if (user.role !== "admin") {
       return sendError(res, httpStatus.FORBIDDEN, {
         message:
@@ -766,7 +762,6 @@ export const mechanicloginUser = catchAsync(
     // }
 
     const user = await findUserByEmail(email);
-    console.log({user})
     if (!user) {
       return sendError(res, httpStatus.NOT_FOUND, {
         message:
@@ -881,7 +876,7 @@ export const setUserLocation = catchAsync(async (req: CustomRequest, res: Respon
 });
 
 export const getNearbyMechanics = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { maxDistance = 10000 } = req.body;  // maxDistance in meters (default 5km)
+  const { maxDistance = 100000 } = req.body;  // maxDistance in meters (default 5km)
   const userId = req.user.id; // Get user ID from req.user
   
   // Fetch the user from the database using the userId

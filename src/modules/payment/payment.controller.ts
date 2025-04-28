@@ -107,7 +107,6 @@ export const getAllPayment = catchAsync(async (req: Request, res: Response) => {
       },
     });
   }
-  //console.log(result.data,"finding date")
   const formattedPayments = result.data.map((payment) => ({
     transactionId: payment.transactionId,
     amount: payment.amount,

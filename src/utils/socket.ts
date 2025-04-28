@@ -56,7 +56,7 @@ const initSocketIO = (server: HttpServer) => {
     }
 
     // Handle user authentication/connection
-    socket.on('authenticate', () => {
+    socket.on('user-connect', () => {
       const userId = userData?.id;
       if (!userId) {  
         logger.error(colors.red('User ID not found'));
@@ -72,7 +72,7 @@ const initSocketIO = (server: HttpServer) => {
     });
 
     // Handle private messages
-    socket.on('private-message', async ({ to, message }: { to: string; message: string }) => {
+    socket.on('send-message', async ({ to, message }: { to: string; message: string }) => {
 
       console.log('Message received:', { to, message });
       console.log(socket.handshake)
@@ -100,7 +100,7 @@ const initSocketIO = (server: HttpServer) => {
         }
 
         // Also send back to sender for their own UI
-        socket.emit('private-message', messageResult);
+        socket.emit('send-message', messageResult);
 
       } catch (error) {
         logger.error(colors.red(`Error sending message: ${error}`));

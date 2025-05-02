@@ -55,13 +55,21 @@ export const getAllMechanicsFromDB = async ({
 export const sortMechanics = async ({
     currentUserId,
     sortBy,
+    serviceName
   }: {
     currentUserId: string;  // Add currentUserId to calculate distance from this user
     sortBy: 'rating' | 'nearest';
+    serviceName?: string;  // Optional: Filter by service name
   }) => {
     // Start with a query for the User model (Mechanics are users too)
     let query = UserModel.find({ role: 'mechanic' });  // Only find users with the role "mechanic"
-  
+    if(serviceName) {
+      const service = await Service.findOne({ name: serviceName });
+      if (!service) throw new Error("Service not found");
+      const serviceId = service._id;
+      const mechanics = await Mechanic.find({ services: serviceId });
+      return mechanics;
+    }
     if (sortBy === 'rating') {
       // Sort by rating in descending order
       query = query.sort({ rating: -1 });

@@ -44,11 +44,12 @@ export const getAllMechanics = catchAsync(async (req, res) => {
 });
 export const getSortedMechanics = catchAsync(async (req: CustomRequest, res: Response) => {
     const { id: currentUserId } = req.user;
-    const { sortBy = 'rating' } = req.query; // Default to 'rating'
+    const { sortBy = 'rating', serviceName } = req.query; // Default to 'rating'
 
     const sortedMechanics = await sortMechanics({
         currentUserId,
         sortBy: sortBy as 'rating' | 'nearest',  // Sort by either 'rating' or 'nearest'
+        serviceName: serviceName as string, // Filter by service name if provided
     });
 
     sendResponse(res, {

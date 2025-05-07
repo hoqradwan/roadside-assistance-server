@@ -60,3 +60,27 @@ export const updateMechanicServiceRate = catchAsync(async (req: CustomRequest, r
         data: updatedMechanicServiceRate,
     });
 });
+
+export const getMechanicServiceRate = catchAsync(async (req: CustomRequest, res: Response) => {
+    const { id: mechanicId } = req.user;
+
+    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicId }).populate("mechanic services.service");
+    if (!mechanicServiceRate) {
+        throw new Error("Mechanic service rate not found");
+    }
+    let formattedServices = mechanicServiceRate.services.map((service: any) => {
+        return {
+            service: service.service.name,
+            price: service.price,
+        };
+    }
+    );
+  
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Mechanic services with price retrieved successfully",
+        data: formattedServices,
+    });
+}
+);

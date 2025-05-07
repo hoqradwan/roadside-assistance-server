@@ -35,6 +35,8 @@ import {
 // import { emitNotification } from "../../utils/socket";
 import httpStatus from "http-status";
 import { CustomRequest } from "../../utils/customRequest";
+import Service from "../Service/service.model";
+import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -783,7 +785,22 @@ export const mechanicloginUser = catchAsync(
           "Only mechanics can login.",
       });
     }
-
+    const isMechanicServiceRateExist = await MechanicServiceRateModel.findOne({
+      mechanic: user._id,
+    });
+    if (!isMechanicServiceRateExist) {
+      const allServices = await Service.find({});
+      const serviceIdsWithPrice = allServices.map((service) => {
+          return { service: service._id, price: 0 };
+      }
+      );
+  
+      await MechanicServiceRateModel.create({
+          mechanic: user._id,
+          services: serviceIdsWithPrice,
+      });
+    }
+   
     // Check password validity
     const isPasswordValid = await bcrypt.compare(
       password,

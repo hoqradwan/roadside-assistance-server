@@ -18,11 +18,13 @@ import { walletRoutes } from "../modules/Wallet/wallet.route";
 import { withdrawRoutes } from "../modules/Withdraw/withdraw.route";
 import { PaymentMethodRoutes } from "../modules/PaymentMethod/paymentMethod.route";
 import { reviewRoutes } from "../modules/Review/review.route";
+import { MechanicServiceRateRoute } from "../modules/MechanicServiceRate/mechanicServiceRate.route";
 
 const router = express.Router();
 
 router.use("/api/v1/user", UserRoutes);
 router.use("/api/v1/chat", ChatRoutes);
+router.use("/api/v1/mechanicServiceRate", MechanicServiceRateRoute);
 router.use("/api/v1/service", ServiceRoutes);
 router.use("/api/v1/admin", AdminRoutes);
 router.use("/api/v1/mechanic", MechanicRoutes);

@@ -8,6 +8,5 @@ router.get('/:id', adminMiddleware("admin","user","mechanic"), getServiceById);
 router.post('/:id', adminMiddleware("admin"), updateService);
 router.post('/mechanic/:serviceId', adminMiddleware("mechanic"),deleteServiceByMechanic);
 router.post('/mechanic/add/:serviceId', adminMiddleware("mechanic"),addServiceToMechanic);
-
 router.delete('/:id', adminMiddleware("admin"),deleteService);
 export const ServiceRoutes = router;

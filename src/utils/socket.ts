@@ -1,12 +1,15 @@
 import { get, Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import mongoose from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
 import { logger } from '../logger/logger';
 import colors from 'colors';
 import httpStatus from 'http-status';
 import { ChatMessage } from '../modules/Chat/chat.model';
 import { getUserData } from './getUserData';
 import { on } from 'events';
+import { NotificationModel } from '../modules/notifications/notification.model';
+import { INotification } from '../modules/notifications/notification.interface';
+import { UserModel } from '../modules/user/user.model';
 
 // Extend Socket interface to include userId
 declare module 'socket.io' {
@@ -120,6 +123,50 @@ const initSocketIO = (server: HttpServer) => {
   logger.info(colors.green('Socket.IO initialized for one-to-one chat'));
 };
 export { initSocketIO, io };
+
+export const emitNotification = async ({
+  userId,
+  userMsg,
+  adminMsg,
+}: {
+  userId: ObjectId;
+  userMsg: string;
+  adminMsg: string;
+}): Promise<void> => {
+  if (!io) {
+    throw new Error("Socket.IO is not initialized");
+  }
+console.log(userMsg,userId)
+  // Get admin IDs
+  const admin = await UserModel.findOne({ role: "admin" }).select("_id");
+const adminId = admin._id;
+  // Notify the specific user
+  if (userMsg) {
+    io.emit(`notification::${userId}`, {
+      userId,
+      message: userMsg, // userMsg is passed as ILocalizedString (plain object)
+    });
+  }
+
+  // Notify all admins
+  if (adminMsg) {
+     io.emit(`notification::${adminId}`, {
+        adminId,
+        message: adminMsg, // adminMsg is passed as ILocalizedString (plain object)
+      });
+  }
+
+  // Save notification to the database
+  await NotificationModel.create<INotification>({
+    userId,
+    adminId: adminId || "",
+    adminMsg: adminMsg, // Stored as ILocalizedString
+    userMsg: userMsg, // Stored as ILocalizedString
+  });
+};
+
+
+
 
 // import { logger } from '../logger/logger';
 // import { UserModel } from '../modules/user/user.model';

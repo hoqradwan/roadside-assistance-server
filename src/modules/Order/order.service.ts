@@ -11,6 +11,7 @@ import { UserModel } from "../user/user.model";
 import Mechanic from "../Mechanic/mechanic.model";
 import Vehicle from "../Vehicle/vehicle.model";
 import Service from "../Service/service.model";
+import { emitNotification } from "../../utils/socket";
 
 export const createOrderIntoDB = async (orderData: IOrder) => {
     const existingUser = await UserModel.findById(orderData.user);
@@ -139,7 +140,6 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
     if (!mechanicWallet) {
         await Wallet.create({ user: mechanicId });
     }
-    await Order.findByIdAndUpdate(orderId, { status: "completed" }, { new: true })
     // Find the commission
     const commission = await Commission.findOne({ applicable: "mechanic" });
 
@@ -198,7 +198,12 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
 
     }
 
-
+    const fiveDigitOTPToConfirmOrder = Math.floor(10000 + Math.random() * 90000).toString();
+    emitNotification({
+        userId : order.user,
+        userMsg : `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order`,
+        adminMsg: ""
+    })
     // Update the wallet with the calculated earning
     const updatedWallet = await Wallet.findOneAndUpdate(
         { user: mechanicId },

@@ -1,4 +1,5 @@
 import paginationBuilder from "../../utils/paginationBuilder";
+import Order from "../Order/order.model";
 import Service from "../Service/service.model";
 import { UserModel } from "../user/user.model";
 import Mechanic, { IMechanic } from "./mechanic.model";
@@ -103,6 +104,8 @@ export const sortMechanics = async ({
 export const toggleAvailabilityIntoDB = async (mechanicId: string) => {
     const mechanic = await Mechanic.findById(mechanicId);
     if (!mechanic) throw new Error("Mechanic not found");
+    
     const result = await Mechanic.findByIdAndUpdate(mechanicId, { isAvailable: !mechanic.isAvailable }, { new: true });
     return result;
 }
+

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Order from "./order.model";
-import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB } from "./order.service";
+import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: Request, res: Response) => {
@@ -16,12 +16,12 @@ export const createOrder = catchAsync(async (req: Request, res: Response) => {
 })
 export const markAsComplete = catchAsync(async (req: CustomRequest, res: Response) => {
   const { orderId } = req.params;
-  const {id:mechanicId} = req.user;
-  const result = await markAsCompleteIntoDB(orderId,mechanicId);
+  const { id: mechanicId } = req.user;
+  const result = await markAsCompleteIntoDB(orderId, mechanicId);
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Order completed successfully",
+    message: "Order completion request sent to user successfully",
     data: result,
   });
 })
@@ -31,7 +31,7 @@ export const getOrders = catchAsync(async (req: Request, res: Response) => {
   const result = await getOrdersFromDB({
     currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
     limit: parseInt(limit as string),  // Ensure limit is a number
-})
+  })
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -41,7 +41,7 @@ export const getOrders = catchAsync(async (req: Request, res: Response) => {
 })
 export const getOrdersByUser = catchAsync(async (req: CustomRequest, res: Response) => {
   const { id } = req.user;
-  const result = await Order.find({user: id});
+  const result = await Order.find({ user: id });
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -82,4 +82,16 @@ export const getOrdersByMechanic = catchAsync(async (req: CustomRequest, res: Re
     message: "Order fetched by status successfully",
     data: result,
   });
+})
+export const verifyOrderCompletionFromUserEnd = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id: userId } = req.user;
+  const { orderId } = req.params;
+  const {code} = req.body;
+  const result = await verifyOrderCompletionFromUserEndIntoDB(orderId, userId, code);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order has completed successfully",
+    data: result,
+  })
 })

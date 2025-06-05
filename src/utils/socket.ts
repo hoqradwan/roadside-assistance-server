@@ -1,3 +1,254 @@
+// const { createLogger } = require("winston");
+// const logger = require("../helpers/logger");
+// const chatModel = require("../modules/Chat/chat.model");
+// const { getMyChatList } = require("../modules/Chat/chat.service");
+// const messageModel = require("../modules/Message/message.model");
+// const User = require("../modules/User/user.model");
+// const { chatService } = require("../modules/Chat/chat.service");
+// const socketAuthMiddleware = require("./auth/auth");
+// const { cpuCount } = require("os-utils");
+// const httpStatus = require("http-status");
+// const {
+//   addNotification,
+// } = require("../modules/Notification/notification.service");
+
+// async function getChatById(chatId) {
+//   try {
+//     const chat = await chatModel.findById(chatId).populate("loadId");
+//     console.log({ chat });
+//     if (!chat) {
+//       throw new Error(`Chat with ID ${chatId} not found`);
+//     }
+//     return chat;
+//   } catch (error) {
+//     console.error("Error fetching chat:", error);
+//     throw error; // Rethrow to handle it in the calling function
+//   }
+// }
+
+// // const userLiveLocationShare = require("./features/userLiveLocationShare");
+
+// const drivers = {}; // Example storage for driver locations
+// const products = {}; // Example storage for product destinations
+
+// const collectLocation = [];
+
+// const socketIO = (io) => {
+//   //initialize an object to store the active users
+//   let activeUsers = {};
+//   io.use(socketAuthMiddleware);
+//   let onlineUsers = [];
+
+//   try {
+//     io.on("connection", (socket) => {
+//       //add the user to the active users list
+//       try {
+//         if (!activeUsers[socket?.decodedToken?._id]) {
+//           activeUsers[socket?.decodedToken?._id] = {
+//             ...socket?.decodedToken,
+//             id: socket?.decodedToken?._id,
+//           };
+//           console.log(
+//             `User Id: ${socket?.decodedToken?._id} is just connected.`
+//           );
+//         } else {
+//           console.log(
+//             `User Id: ${socket?.decodedToken?._id} is already connected.`
+//           );
+//         }
+//       } catch (error) {
+//         console.error("Error fetching user data:", error);
+//         logger.error(error, "-- socket.io connection error --");
+//       }
+
+//       const user = socket.decodedToken;
+
+//       try {
+//         socket.on("join", (data) => {
+//           const chatId = data.toString();
+//           socket.join(chatId);
+
+//           const userId = user._id.toString();
+
+//           if (!onlineUsers.includes(userId)) {
+//             onlineUsers.push(userId);
+//           }
+//           io.emit("online-users-updated", onlineUsers);
+//         });
+
+//         socket.on("send-new-message", async (message, callback) => {
+//           console.log("new message ====>", { message });
+
+//           try {
+//             console.log("chat -> ", message.chat);
+//             // Assuming `getChatById` fetches the chat object including the users array
+//             const chat = await getChatById(message.chat);
+
+//             console.log({ chat });
+
+//             let newMessage;
+//             let userData;
+//             if (chat) {
+//               newMessage = await messageModel.create(message);
+//               // console.log("==== new Message ==== " ,{ newMessage });
+//               // console.log("==== chat Message ==== " ,{ chat });
+
+//               let receiverId;
+//               if (chat.chatType === "shipper-receiver") {
+//                 console.log("==== user ===", user);
+//                 console.log("==== receiver ===",chat.loadId.receiverId);
+
+//                 if(user._id === chat.loadId.receiverId.toString()){
+//                   console.log('asdflkjaskldfjkasjfdkjdsfkj')
+//                   receiverId = chat.loadId.user;
+//                 }
+//                 else{
+//                   receiverId = chat.loadId.receiverId; // Assuming loadId has receiverId
+//                 }
+
+//               } else if (chat.chatType === "shipper-driver") {
+//                 if(user._id === chat.loadId.driver.toString()){
+//                   receiverId = chat.loadId.user;
+//                 }
+//                 else{
+//                   receiverId = chat.loadId.driver; // Assuming loadId has driver
+//                 }
+
+//               } else if (chat.chatType === "driver-receiver") {
+//                 if(user._id === chat.loadId.receiverId.toString()){
+//                   receiverId = chat.loadId.driver;
+//                 }
+//                 else{
+//                   receiverId = chat.loadId.receiverId; // Assuming loadId has driver
+//                 }
+//               }
+//               // Emit notification to the receiver
+//               if (receiverId) {
+//                 const onlineUser = onlineUsers.find((id) => id === receiverId?.toString());
+//                 console.log("==== online User ==== ", onlineUser);
+//                 if (!onlineUser) {
+//                   const notificationData = {
+//                     message: "You have got a new message",
+//                     type: "message",
+//                     role: socket.decodedToken.role,
+//                     linkId: newMessage._id,
+//                     sender: user._id,
+//                     receiver: receiverId,
+//                   };
+//                   await addNotification(notificationData);
+//                 }
+//               }
+//             }
+//             // console.log(message?.chat);
+//             const chatId = message?.chat;
+//             socket
+//               .to(chatId)
+//               .emit(`new-message-received::${message?.chat}`, message);
+//             // io.to(chatId).emit(`new-message-received::${message?.chat}`, message);
+//             socket.emit(`new-message-received::${message?.chat}`, message);
+
+//             callback({ success: true, message: newMessage, result: message });
+//           } catch (error) {
+//             console.error("Error fetching chat details:", error);
+//           }
+//         });
+
+//         // typing functionality start
+
+//         socket.on("typing", async (message, callback) => {
+
+//           if (message.status === "true") {
+//             io.emit(`typing::${message.receiverId}`, true);
+//             callback({ success: true, message: message, result: message });
+//           } else {
+//             io.emit(`typing::${message.receiverId}`, false);
+//             callback({ success: false, message: message, result: message });
+//           }
+//         });
+
+//         // typing functionality end
+
+//         const locationBuffer = [];
+//         const LOCATION_LIMIT = 30;
+//         let lastUpdateTime = Date.now();
+
+//         socket.on("client_location", async (data, callback) => {
+//           const longitude = Number(data.lang);
+//           const latitude = Number(data.lat);
+
+//           // console.log(locationBuffer, "from socket")
+//           locationBuffer.push({ longitude, latitude });
+
+//           if (locationBuffer.length >= LOCATION_LIMIT) {
+//             const currentTime = Date.now();
+//             const timeElapsed = currentTime - lastUpdateTime;
+//             if (timeElapsed >= 30 * 1000) {
+//               try {
+//                 const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+//                 await User.findByIdAndUpdate(
+//                   user?._id,
+//                   { $set: { "location.coordinates": [longitude, latitude] } },
+//                   { new: true }
+//                 );
+
+//                 // const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+
+//                 // console.log({"location.coordinates": lastLocation})
+//                 // await User.findByIdAndUpdate(
+//                 //   user?._id,
+//                 //   { $set: { "location.coordinates": lastLocation } },
+//                 //   { new: true }
+//                 // );
+
+//                 console.log("Database updated with location:", lastLocation);
+//                 locationBuffer.length = 0;
+//                 lastUpdateTime = Date.now();
+//               } catch (error) {
+//                 console.error("Error updating the database:", error.message);
+//               }
+//             } else {
+//               console.log(
+//                 `Waiting for 1 minute. Time remaining: ${
+//                   30 - Math.floor(timeElapsed / 1000)
+//                 } seconds`
+//               );
+//             }
+//           }
+//           // io.emit(`server_location::${user?._id?.toString()}`, data);
+//           io.emit(`server_location`, data);
+//         });
+
+//         // Leave a chat room start
+//         socket.on("leave", (chatId) => {
+//           console.log(`${socket.id} left room ${chatId}`);
+//           socket.leave(chatId);
+
+//           // Remove user from onlineUsers
+//           const userId = socket?.decodedToken?._id?.toString();
+//           if (userId) {
+//             onlineUsers = onlineUsers.filter((id) => id !== userId);
+//             io.emit("online-users-updated", onlineUsers); // Notify all clients about the change
+//             console.log(`User ID: ${userId} removed from onlineUsers.`);
+//           }
+//         });
+
+//       } catch (error) {}
+
+//       socket.on("check", (data, callback) => {
+//         console.log("check event of socket in backend -> ", { data });
+//         callback({ success: true });
+//       });
+
+//       socket.on("disconnect", () => {
+//         delete activeUsers[socket?.decodedToken?._id];
+//         console.log(`User ID: ${socket?.decodedToken?._id} just disconnected`);
+//       });
+//     });
+//   } catch (error) {}
+// };
+
+// module.exports = socketIO;
+
 import { get, Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import mongoose, { ObjectId } from 'mongoose';
@@ -37,7 +288,7 @@ const initSocketIO = (server: HttpServer) => {
 
     logger.info(colors.blue(`🔌🟢 New connection: ${socket.id}`));
 
-    console.log('Socket connected token :', socket.handshake.headers.token);
+    // console.log('Socket connected token :', socket.handshake.headers.token);
     const token = socket.handshake.headers.token || socket.handshake.headers.authorization;
 
     if (!token) {
@@ -46,10 +297,12 @@ const initSocketIO = (server: HttpServer) => {
       socket.disconnect();
       return;
     }
-    
+
     userData = getUserData(token as string);
 
-    console.log("userData", userData);
+    console.log({userData})
+
+    // console.log("userData", userData);
 
     if (!userData) {
       logger.error(colors.red('Invalid token'));
@@ -61,14 +314,14 @@ const initSocketIO = (server: HttpServer) => {
     // Handle user authentication/connection
     socket.on('user-connect', () => {
       const userId = userData?.id;
-      if (!userId) {  
+      if (!userId) {
         logger.error(colors.red('User ID not found'));
         socket.emit('error', 'Unauthorized');
         socket.disconnect();
         return;
       }
-      socket.userId = userId ;
-      onlineUsers.set(userId , socket.id);
+      socket.userId = userId;
+      onlineUsers.set(userId, socket.id);
       socket.join(userId); // Join user's personal room
 
       logger.info(colors.green(`User ${userId} authenticated`));
@@ -78,24 +331,23 @@ const initSocketIO = (server: HttpServer) => {
     socket.on('send-message', async ({ to, message }: { to: string; message: string }) => {
 
       console.log('Message received:', { to, message });
-      console.log(socket.handshake)
-      if (!socket.userId) {
+
+      console.log("check user id", userData?.id)
+      if (!userData?.id) {
         socket.emit('error', 'Unauthorized');
         return;
       }
-
-
       try {
         // Save message to database
         const messageResult = await ChatMessage.create({
-          sender: socket.userId,
+          sender: userData?.id,
           receiver: to,
           message,
           timestamp: new Date()
         });
 
 
-        console.log({onlineUsers});
+        console.log({ onlineUsers });
         // Emit to recipient if online
         if (onlineUsers.has(to)) {
           const sockeId = onlineUsers.get(to);
@@ -110,7 +362,54 @@ const initSocketIO = (server: HttpServer) => {
         socket.emit('error', 'Failed to send message');
       }
     });
+    const locationBuffer: any = [];
+    const LOCATION_LIMIT = 30;
+    let lastUpdateTime = Date.now();
 
+    socket.on("client_location", async (data, callback) => {
+      const longitude = Number(data.lang);
+      const latitude = Number(data.lat);
+
+      // console.log(locationBuffer, "from socket")
+      locationBuffer.push({ longitude, latitude });
+
+      if (locationBuffer.length >= LOCATION_LIMIT) {
+        const currentTime = Date.now();
+        const timeElapsed = currentTime - lastUpdateTime;
+        if (timeElapsed >= 30 * 1000) {
+          try {
+            const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+            await UserModel.findByIdAndUpdate(
+              userData._id,
+              { $set: { "location.coordinates": [longitude, latitude] } },
+              { new: true }
+            );
+
+            // const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+
+            // console.log({"location.coordinates": lastLocation})
+            // await User.findByIdAndUpdate(
+            //   user?._id,
+            //   { $set: { "location.coordinates": lastLocation } },
+            //   { new: true }
+            // );
+
+            console.log("Database updated with location:", lastLocation);
+            locationBuffer.length = 0;
+            lastUpdateTime = Date.now();
+          } catch (error) {
+            console.error("Error updating the database");
+          }
+        } else {
+          console.log(
+            `Waiting for 1 minute. Time remaining: ${30 - Math.floor(timeElapsed / 1000)
+            } seconds`
+          );
+        }
+      }
+      // io.emit(`server_location::${user?._id?.toString()}`, data);
+      io?.emit(`server_location`, data);
+    });
     // Handle disconnection
     socket.on('disconnect', () => {
       if (socket.userId) {
@@ -136,10 +435,10 @@ export const emitNotification = async ({
   if (!io) {
     throw new Error("Socket.IO is not initialized");
   }
-console.log(userMsg,userId)
+  console.log(userMsg, userId)
   // Get admin IDs
   const admin = await UserModel.findOne({ role: "admin" }).select("_id");
-const adminId = admin._id;
+  const adminId = admin._id;
   // Notify the specific user
   if (userMsg) {
     io.emit(`notification::${userId}`, {
@@ -150,10 +449,10 @@ const adminId = admin._id;
 
   // Notify all admins
   if (adminMsg) {
-     io.emit(`notification::${adminId}`, {
-        adminId,
-        message: adminMsg, // adminMsg is passed as ILocalizedString (plain object)
-      });
+    io.emit(`notification::${adminId}`, {
+      adminId,
+      message: adminMsg, // adminMsg is passed as ILocalizedString (plain object)
+    });
   }
 
   // Save notification to the database
@@ -168,91 +467,259 @@ const adminId = admin._id;
 
 
 
-// import { logger } from '../logger/logger';
-// import { UserModel } from '../modules/user/user.model';
-// import colors from 'colors';
-// import mongoose from 'mongoose';
-// import { Socket } from 'socket.io'; // Import Socket type for better typing
-// import { Server as HttpServer } from 'http';
-// import { Server } from 'socket.io';
+/* 
 
-// // Extend the Socket interface to include userId
-// declare module 'socket.io' {
-//   interface Socket {
-//     userId?: string; // Make userId optional
-//   }
-// }
-// let io : Server | undefined; // Declare io as a Server type or undefined
-// const initSocketIO = (server: HttpServer) => {
-//    io = new Server(server); // Initialize Socket.IO with the server
+const { createLogger } = require("winston");
+const logger = require("../helpers/logger");
+const chatModel = require("../modules/Chat/chat.model");
+const { getMyChatList } = require("../modules/Chat/chat.service");
+const messageModel = require("../modules/Message/message.model");
+const User = require("../modules/User/user.model");
+const { chatService } = require("../modules/Chat/chat.service");
+const socketAuthMiddleware = require("./auth/auth");
+const { cpuCount } = require("os-utils");
+const httpStatus = require("http-status");
+const {
+  addNotification,
+} = require("../modules/Notification/notification.service");
+ 
+async function getChatById(chatId) {
+  try {
+    const chat = await chatModel.findById(chatId).populate("loadId");
+    console.log({ chat });
+    if (!chat) {
+      throw new Error(`Chat with ID ${chatId} not found`);
+    }
+    return chat;
+  } catch (error) {
+    console.error("Error fetching chat:", error);
+    throw error; // Rethrow to handle it in the calling function
+  }
+}
+ 
+// const userLiveLocationShare = require("./features/userLiveLocationShare");
+ 
+const drivers = {}; // Example storage for driver locations
+const products = {}; // Example storage for product destinations
+ 
+const collectLocation = [];
+ 
+const socketIO = (io) => {
+  //initialize an object to store the active users
+  let activeUsers = {};
+  io.use(socketAuthMiddleware);
+  let onlineUsers = [];
+ 
+  try {
+    io.on("connection", (socket) => {
+      //add the user to the active users list
+      try {
+        if (!activeUsers[socket?.decodedToken?._id]) {
+          activeUsers[socket?.decodedToken?._id] = {
+            ...socket?.decodedToken,
+            id: socket?.decodedToken?._id,
+          };
+          console.log(
+            `User Id: ${socket?.decodedToken?._id} is just connected.`
+          );
+        } else {
+          console.log(
+            `User Id: ${socket?.decodedToken?._id} is already connected.`
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        logger.error(error, "-- socket.io connection error --");
+      }
+ 
+      const user = socket.decodedToken;
+ 
+      try {
+        socket.on("join", (data) => {
+          const chatId = data.toString();
+          socket.join(chatId);
+ 
+          const userId = user._id.toString();
+ 
+          if (!onlineUsers.includes(userId)) {
+            onlineUsers.push(userId);
+          }
+          io.emit("online-users-updated", onlineUsers);
+        });
+ 
+        socket.on("send-new-message", async (message, callback) => {
+          console.log("new message ====>", { message });
+ 
+          try {
+            console.log("chat -> ", message.chat);
+            // Assuming `getChatById` fetches the chat object including the users array
+            const chat = await getChatById(message.chat);
+ 
+            console.log({ chat });
+ 
+            let newMessage;
+            let userData;
+            if (chat) {
+              newMessage = await messageModel.create(message);
+              // console.log("==== new Message ==== " ,{ newMessage });
+              // console.log("==== chat Message ==== " ,{ chat });
+ 
+              let receiverId;
+              if (chat.chatType === "shipper-receiver") {
+                console.log("==== user ===", user);
+                console.log("==== receiver ===",chat.loadId.receiverId);
+ 
+                if(user._id === chat.loadId.receiverId.toString()){
+                  console.log('asdflkjaskldfjkasjfdkjdsfkj')
+                  receiverId = chat.loadId.user;
+                }
+                else{
+                  receiverId = chat.loadId.receiverId; // Assuming loadId has receiverId
+                }
+               
+              } else if (chat.chatType === "shipper-driver") {
+                if(user._id === chat.loadId.driver.toString()){
+                  receiverId = chat.loadId.user;
+                }
+                else{
+                  receiverId = chat.loadId.driver; // Assuming loadId has driver
+                }
+               
+              } else if (chat.chatType === "driver-receiver") {
+                if(user._id === chat.loadId.receiverId.toString()){
+                  receiverId = chat.loadId.driver;
+                }
+                else{
+                  receiverId = chat.loadId.receiverId; // Assuming loadId has driver
+                }
+              }
+              // Emit notification to the receiver
+              if (receiverId) {
+                const onlineUser = onlineUsers.find((id) => id === receiverId?.toString());
+                console.log("==== online User ==== ", onlineUser);
+                if (!onlineUser) {
+                  const notificationData = {
+                    message: "You have got a new message",
+                    type: "message",
+                    role: socket.decodedToken.role,
+                    linkId: newMessage._id,
+                    sender: user._id,
+                    receiver: receiverId,
+                  };
+                  await addNotification(notificationData);
+                }
+              }
+            }
+            // console.log(message?.chat);
+            const chatId = message?.chat;
+            socket
+              .to(chatId)
+              .emit(`new-message-received::${message?.chat}`, message);
+            // io.to(chatId).emit(`new-message-received::${message?.chat}`, message);
+            socket.emit(`new-message-received::${message?.chat}`, message);
+ 
+            callback({ success: true, message: newMessage, result: message });
+          } catch (error) {
+            console.error("Error fetching chat details:", error);
+          }
+        });
+ 
+        // typing functionality start
+ 
+        socket.on("typing", async (message, callback) => {
+ 
+          if (message.status === "true") {
+            io.emit(`typing::${message.receiverId}`, true);
+            callback({ success: true, message: message, result: message });
+          } else {
+            io.emit(`typing::${message.receiverId}`, false);
+            callback({ success: false, message: message, result: message });
+          }
+        });
+ 
+        // typing functionality end
+ 
+        const locationBuffer = [];
+        const LOCATION_LIMIT = 30;
+        let lastUpdateTime = Date.now();
+ 
+        socket.on("client_location", async (data, callback) => {
+          const longitude = Number(data.lang);
+          const latitude = Number(data.lat);
+ 
+          // console.log(locationBuffer, "from socket")
+          locationBuffer.push({ longitude, latitude });
+ 
+          if (locationBuffer.length >= LOCATION_LIMIT) {
+            const currentTime = Date.now();
+            const timeElapsed = currentTime - lastUpdateTime;
+            if (timeElapsed >= 30 * 1000) {
+              try {
+                const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+                await User.findByIdAndUpdate(
+                  user?._id,
+                  { $set: { "location.coordinates": [longitude, latitude] } },
+                  { new: true }
+                );
+ 
+                // const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+ 
+                // console.log({"location.coordinates": lastLocation})
+                // await User.findByIdAndUpdate(
+                //   user?._id,
+                //   { $set: { "location.coordinates": lastLocation } },
+                //   { new: true }
+                // );
+ 
+                console.log("Database updated with location:", lastLocation);
+                locationBuffer.length = 0;
+                lastUpdateTime = Date.now();
+              } catch (error) {
+                console.error("Error updating the database:", error.message);
+              }
+            } else {
+              console.log(
+                `Waiting for 1 minute. Time remaining: ${
+                  30 - Math.floor(timeElapsed / 1000)
+                } seconds`
+              );
+            }
+          }
+          // io.emit(`server_location::${user?._id?.toString()}`, data);
+          io.emit(`server_location`, data);
+        });
+ 
+        // Leave a chat room start
+        socket.on("leave", (chatId) => {
+          console.log(`${socket.id} left room ${chatId}`);
+          socket.leave(chatId);
+ 
+          // Remove user from onlineUsers
+          const userId = socket?.decodedToken?._id?.toString();
+          if (userId) {
+            onlineUsers = onlineUsers.filter((id) => id !== userId);
+            io.emit("online-users-updated", onlineUsers); // Notify all clients about the change
+            console.log(`User ID: ${userId} removed from onlineUsers.`);
+          }
+        });
+       
+      } catch (error) {}
+ 
+      socket.on("check", (data, callback) => {
+        console.log("check event of socket in backend -> ", { data });
+        callback({ success: true });
+      });
+ 
+      socket.on("disconnect", () => {
+        delete activeUsers[socket?.decodedToken?._id];
+        console.log(`User ID: ${socket?.decodedToken?._id} just disconnected`);
+      });
+    });
+  } catch (error) {}
+};
+ 
+module.exports = socketIO;
+ 
+ 
 
-//   io.on('connection', (socket: Socket) => {  // Add the `Socket` type to socket
-//     logger.info(colors.blue('🔌🟢 A user connected'));
-
-//     // Listen for user connection
-//     socket.on('user-connected', (userId: string) => {
-//       console.log('userId boomm!!!', userId);
-//       if (!mongoose.Types.ObjectId.isValid(userId)) {
-//         logger.error(colors.red(`Invalid user ID: ${userId}`));
-//         return;
-//       }
-
-//       socket.userId = userId; // Store userId on the socket
-//       socket.join(userId); // Join a room corresponding to userId
-//       logger.info(colors.green(`User ${userId} joined their notification room`));
-//     });
-
-//     // Handle user connection for the `user/connect` event
-//     socket.on('user/connect', async ({ userId }: { userId: string }) => {  // Type the data structure
-//       if (!mongoose.Types.ObjectId.isValid(userId)) {
-//         logger.error(colors.red(`Invalid user ID: ${userId}`));
-//         return;
-//       }
-
-//       try {
-//         socket.userId = userId;
-//         socket.join(userId);  // Join user to their own room
-//         socket.broadcast.to(userId).emit('user/inactivate', true);
-
-//         // Update the user's online status in the database (commented out for now)
-//         // await UserModel.updateOne({ _id: userId }, { $set: { isOnline: true } });
-
-//         // Broadcast that the user has connected
-//         socket.broadcast.emit('user/connect', userId);
-
-//         logger.info(colors.green(`User ${userId} is now online.`));
-//       } catch (error) {
-//         logger.error(colors.red(`Error in user/connect: ${error}`));
-//       }
-//     });
-
-//     // Handle user disconnect
-//     const handleDisconnect = async () => {
-//       if (!socket.userId || !mongoose.Types.ObjectId.isValid(socket.userId)) {
-//         return;
-//       }
-
-//       try {
-//         // Update user's online status to offline (commented out for now)
-//         // await UserModel.updateOne(
-//         //   { _id: socket.userId },
-//         //   { $set: { isOnline: false } }
-//         // );
-
-//         // Broadcast that the user has disconnected
-//         socket.broadcast.emit('user/disconnect', socket.userId);
-//         logger.info(colors.yellow(`User ${socket.userId} is now offline.`));
-//       } catch (error) {
-//         logger.error(colors.red(`Error in handleDisconnect: ${error}`));
-//       }
-//     };
-
-//     // Listen for the disconnect event
-//     socket.on('disconnect', handleDisconnect);
-//     socket.on('user/disconnect', handleDisconnect);
-//   });
-
-//   logger.info(colors.green('Socket.IO initialized'));
-// };
-
-// export { initSocketIO , io};
+*/

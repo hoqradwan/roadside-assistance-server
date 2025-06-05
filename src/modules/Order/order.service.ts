@@ -12,6 +12,7 @@ import Mechanic from "../Mechanic/mechanic.model";
 import Vehicle from "../Vehicle/vehicle.model";
 import Service from "../Service/service.model";
 import { emitNotification } from "../../utils/socket";
+import { NotificationModel } from "../notifications/notification.model";
 
 export const createOrderIntoDB = async (orderData: IOrder) => {
     const existingUser = await UserModel.findById(orderData.user);
@@ -30,10 +31,10 @@ export const createOrderIntoDB = async (orderData: IOrder) => {
     // if (existingServices.length !== orderData.services.length) {
     //     throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
     // }
-    const mechanicServices = await Mechanic.find({services: {$eq: orderData.services}})
-    if(mechanicServices.length !== orderData.services.length){
+    const mechanicServices = await Mechanic.find({ services: { $eq: orderData.services } })
+    if (mechanicServices.length !== orderData.services.length) {
         throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide these services");
-        
+
     }
     const orderTotal = await Service.aggregate([
         { $match: { _id: { $in: orderData.services } } },
@@ -44,7 +45,7 @@ export const createOrderIntoDB = async (orderData: IOrder) => {
     }
     let total = orderTotal[0].total;
     const appService = await Commission.findOne({ applicable: "user" });
-    if(appService) {
+    if (appService) {
         if (appService.type === "number") {
             total += appService.amount;
         } else if (appService.type === "percentage") {
@@ -126,101 +127,219 @@ export const getOrdersByMechanicFromDB = async (mechanicid: string, userData: Pa
     return orders;
 }
 export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) => {
-    const order = await Order.findOne({ _id: orderId, mechanic: mechanicId });
-
-    // Check if order exists
+    const order = await Order.findById(orderId);
     if (!order) {
-        throw new AppError(httpStatus.NOT_FOUND, "Order does not exist or does not belong to this mechanic");
-    }
-    if (order.status === "completed") {
-        throw new AppError(httpStatus.BAD_REQUEST, "Order is already completed");
-    }
-
-    const mechanicWallet = await Wallet.findOne({ user: mechanicId });
-    if (!mechanicWallet) {
-        await Wallet.create({ user: mechanicId });
-    }
-    // Find the commission
-    const commission = await Commission.findOne({ applicable: "mechanic" });
-
-    // Ensure commission exists
-    if (!commission) {
-        throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
-    }
-    let earning, commissionUser, profitTotal;
-    const orderTotal = order?.total;
-    if (commission.type === "number") {
-        // Calculate earnings
-        earning = (order?.total ?? 0) - (commission?.amount ?? 0);
-        commissionUser = await Commission.findOne({ applicable: "user" });
-        if (commissionUser?.type === "number") {
-            profitTotal = (commission.amount ?? 0) + (commissionUser?.amount ?? 0);
-            await Admin.findOneAndUpdate({ role: "admin" }, {
-                $inc: {
-                    totalEarnings: orderTotal,
-                    profit: profitTotal
-                }
-            })
-        } else if (commissionUser?.type === "percentage") {
-            const userProfit = (order.total * (commissionUser?.amount ?? 0)) / 100
-            profitTotal = (commission.amount ?? 0) + userProfit;
-            await Admin.findOneAndUpdate({ role: "admin" }, {
-                $inc: {
-                    totalEarnings: orderTotal,
-                    profit: profitTotal
-                }
-            })
-        }
-
-    } else if (commission.type === "percentage") {
-        const commissionPercentageToNumber = ((commission?.amount ?? 0) / 100) * order?.total;
-        earning = (order?.total ?? 0) - commissionPercentageToNumber;
-        commissionUser = await Commission.findOne({ applicable: "user" });
-        if (commissionUser?.type === "number") {
-            profitTotal = commissionPercentageToNumber + (commissionUser?.amount ?? 0);
-            await Admin.findOneAndUpdate({ role: "admin" }, {
-                $inc: {
-                    totalEarnings: orderTotal,
-                    profit: profitTotal
-                }
-            })
-        } else if (commissionUser?.type === "percentage") {
-            const commissionPercentageToNumber = ((commission?.amount ?? 0) / 100) * orderTotal;
-            const userCommissionPercentageToNumber = (commissionUser?.amount / 100) * orderTotal
-            profitTotal = commissionPercentageToNumber + userCommissionPercentageToNumber;
-            await Admin.findOneAndUpdate({ role: "admin" }, {
-                $inc: {
-                    totalEarnings: orderTotal,
-                    profit: profitTotal
-                }
-            })
-        }
-
+        throw new Error("Order not found");
     }
 
     const fiveDigitOTPToConfirmOrder = Math.floor(10000 + Math.random() * 90000).toString();
-    emitNotification({
-        userId : order.user,
-        userMsg : `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order`,
+    await NotificationModel.create({
+        userId: order.user,
+        userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order ${orderId}`,
         adminMsg: ""
-    })
-    // Update the wallet with the calculated earning
-    const updatedWallet = await Wallet.findOneAndUpdate(
-        { user: mechanicId },
-        {
-            $inc: {
-                totalEarnings: earning,
-                availableBalance: earning
-            }
-        },
-        { new: true }
-    );
+    });
 
-    // Check if the wallet was updated successfully
-    if (!updatedWallet) {
-        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update wallet");
+    const mechanicWallet = await Wallet.findOne({ user: order.mechanic });
+    if (!mechanicWallet) {
+        await Wallet.create({ user: order.mechanic });
     }
 
+    // emitNotification({
+    //     userId: order.user,
+    //     userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order`,
+    //     adminMsg: ""
+    // })
+    // Update the wallet with the calculated earning
+    // const updatedWallet = await Wallet.findOneAndUpdate(
+    //     { user: mechanicId },
+    //     {
+    //         $inc: {
+    //             totalEarnings: earning,
+    //             availableBalance: earning
+    //         }
+    //     },
+    //     { new: true }
+    // );
+
+    // // Check if the wallet was updated successfully
+    // if (!updatedWallet) {
+    //     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update wallet");
+    // }
+
     // Return the updated wallet
-    return updatedWallet;
+    return fiveDigitOTPToConfirmOrder;
 };
+
+export const verifyOrderCompletionFromUserEndIntoDB = async (
+  orderId: string,
+  userId: string,
+  code: string
+) => {
+
+  // Find the order by ID and verify ownership if necessary
+  const order = await Order.findOne({ _id: orderId, user: userId });
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Order does not exist or does not belong to this user');
+  }
+
+  if (order.status === 'completed') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Order is already completed');
+  }
+
+  // Verify that the notification with the expected verification code exists for this user
+  const expectedMsg = `Please enter this code ${code} to complete the order ${orderId}`;
+
+  const orderVerificationCodeMatch = await NotificationModel.findOne({ userId, userMsg: expectedMsg });
+
+  if (!orderVerificationCodeMatch) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Your verification code does not match');
+  }
+
+  // Ensure mechanic wallet exists or create it
+  let mechanicWallet = await Wallet.findOne({ user: order.mechanic });
+  if (!mechanicWallet) {
+    mechanicWallet = await Wallet.create({ user: order.mechanic, totalBalance: 0, totalWithdrawal: 0, type: 'mechanic' });
+  }
+
+  // Find mechanic commission config
+  const mechanicCommission = await Commission.findOne({ applicable: 'mechanic' });
+  if (!mechanicCommission) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Commission configuration for mechanic not found');
+  }
+
+  // Find user commission config (optional)
+  const userCommission = await Commission.findOne({ applicable: 'user' });
+
+  const orderTotal = order.total ?? 0;
+  let mechanicEarning = 0;
+  let profitTotal = 0;
+
+  // Calculate mechanic earnings and profit based on commission types
+  if (mechanicCommission.type === 'number') {
+    mechanicEarning = orderTotal - mechanicCommission.amount;
+  } else if (mechanicCommission.type === 'percentage') {
+    mechanicEarning = orderTotal - (orderTotal * mechanicCommission.amount) / 100;
+  }
+
+  // Calculate total profit for admin
+  if (userCommission) {
+    if (userCommission.type === 'number') {
+      profitTotal = (orderTotal - mechanicEarning) + userCommission.amount;
+    } else if (userCommission.type === 'percentage') {
+      profitTotal = (orderTotal - mechanicEarning) + (orderTotal * userCommission.amount) / 100;
+    } else {
+      profitTotal = orderTotal - mechanicEarning;
+    }
+  } else {
+    profitTotal = orderTotal - mechanicEarning;
+  }
+
+  // Update admin earnings and profit
+  await Admin.findOneAndUpdate(
+    { role: 'admin' },
+    {
+      $inc: {
+        totalEarnings: orderTotal,
+        profit: profitTotal,
+      },
+    }
+  );
+
+  // Update mechanic wallet balance
+//   mechanicWallet.totalBalance += mechanicEarning;
+//   await mechanicWallet.save();
+
+  // Mark order as completed
+  order.status = 'completed';
+  await order.save();
+
+  // Optionally, you can return updated order and wallet info
+  return {
+    order,
+    mechanicWallet,
+    notification: orderVerificationCodeMatch,
+  };
+};
+
+// export const verifyOrderCompletionFromUserEndIntoDB = async (orderId: string, userId: string, code: string) => {
+//     const order = await Order.findOne({ _id: orderId });
+
+//     // Check if order exists
+//     if (!order) {
+//         throw new AppError(httpStatus.NOT_FOUND, "Order does not exist or does not belong to this mechanic");
+//     }
+
+//     if (order.status === "completed") {
+//         throw new AppError(httpStatus.BAD_REQUEST, "Order is already completed");
+//     }
+//     const orderVerificationCodeMatch = await NotificationModel.findOne({ userMsg: `Please enter this code ${code} to complete the order ${orderId}` })
+//     if (!orderVerificationCodeMatch) {
+//         throw new Error("Your verification code does not match")
+//     }
+
+//     const mechanicWallet = await Wallet.findOne({ user: order.mechanic });
+//     if (!mechanicWallet) {
+//         await Wallet.create({ user: order.mechanic });
+//     }
+
+//     // Find the commission
+//     const commission = await Commission.findOne({ applicable: "mechanic" });
+
+//     // Ensure commission exists
+//     if (!commission) {
+//         throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+//     }
+//     let earning, commissionUser, profitTotal;
+//     const orderTotal = order?.total;
+//     if (commission.type === "number") {
+//         // Calculate earnings
+//         earning = (order?.total ?? 0) - (commission?.amount ?? 0);
+//         commissionUser = await Commission.findOne({ applicable: "user" });
+//         if (commissionUser?.type === "number") {
+//             profitTotal = (commission.amount ?? 0) + (commissionUser?.amount ?? 0);
+//             await Admin.findOneAndUpdate({ role: "admin" }, {
+//                 $inc: {
+//                     totalEarnings: orderTotal,
+//                     profit: profitTotal
+//                 }
+//             })
+//         } else if (commissionUser?.type === "percentage") {
+//             const userProfit = (order.total * (commissionUser?.amount ?? 0)) / 100
+//             profitTotal = (commission.amount ?? 0) + userProfit;
+//             await Admin.findOneAndUpdate({ role: "admin" }, {
+//                 $inc: {
+//                     totalEarnings: orderTotal,
+//                     profit: profitTotal
+//                 }
+//             })
+//         }
+
+//     } else if (commission.type === "percentage") {
+//         const commissionPercentageToNumber = ((commission?.amount ?? 0) / 100) * order?.total;
+//         earning = (order?.total ?? 0) - commissionPercentageToNumber;
+//         commissionUser = await Commission.findOne({ applicable: "user" });
+//         if (commissionUser?.type === "number") {
+//             profitTotal = commissionPercentageToNumber + (commissionUser?.amount ?? 0);
+//             await Admin.findOneAndUpdate({ role: "admin" }, {
+//                 $inc: {
+//                     totalEarnings: orderTotal,
+//                     profit: profitTotal
+//                 }
+//             })
+//         } else if (commissionUser?.type === "percentage") {
+//             const commissionPercentageToNumber = ((commission?.amount ?? 0) / 100) * orderTotal;
+//             const userCommissionPercentageToNumber = (commissionUser?.amount / 100) * orderTotal
+//             profitTotal = commissionPercentageToNumber + userCommissionPercentageToNumber;
+//             await Admin.findOneAndUpdate({ role: "admin" }, {
+//                 $inc: {
+//                     totalEarnings: orderTotal,
+//                     profit: profitTotal
+//                 }
+//             })
+//         }
+
+//     }
+//     order.status = "completed";
+//     await order.save();
+//     return orderVerificationCodeMatch;
+// }

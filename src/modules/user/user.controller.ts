@@ -40,10 +40,10 @@ import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicService
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
-  const validationError = validateUserInput(name, email, password,role);
+  const validationError = validateUserInput(name, email, password, role);
 
   if (validationError) {
-    
+
     return sendError(res, httpStatus.BAD_REQUEST, validationError);
   }
 
@@ -89,7 +89,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "OTP sent to your email. Please verify to continue registration.",
-    data: { token },
+    data: { name, email, role, token },
   });
 });
 
@@ -273,8 +273,8 @@ export const forgotPassword = catchAsync(
 );
 
 export const resetPassword = catchAsync(async (req: Request, res: Response) => {
- 
-const email = req.query.email as string;
+
+  const email = req.query.email as string;
 
   const { password, confirmPassword } = req.body;
 
@@ -307,7 +307,7 @@ const email = req.query.email as string;
     statusCode: httpStatus.OK,
     success: true,
     message: "Password reset successfully.",
-    data: null,
+    data: {name : user.name, email: user.email, role: user.role},
   });
 });
 
@@ -360,7 +360,11 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.CREATED,
     success: true,
     message: "Registration successful.",
-    data: null,
+    data: {
+      name,
+      email,
+      role,
+    },
   });
 });
 
@@ -394,7 +398,10 @@ export const verifyForgotPasswordOTP = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: "OTP verified successfully.",
-      data: null,
+      data: {
+        name,
+        email,
+      },
     });
   },
 );
@@ -452,7 +459,7 @@ export const changePassword = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: "You have successfully changed the password.",
-      data: null,
+      data: {name:user.name, email: user.email, role: user.role},
     });
   },
 );
@@ -539,7 +546,7 @@ export const getSelfInfo = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getAllUsers = catchAsync(async (req: CustomRequest, res: Response) => {
-  const {id : adminId} = req.user;
+  const { id: adminId } = req.user;
 
   // Pagination parameters
   const page = parseInt(req.query.page as string) || 1;
@@ -794,13 +801,13 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
 //           return { service: service._id, price: 0 };
 //       }
 //       );
-  
+
 //       await MechanicServiceRateModel.create({
 //           mechanic: user._id,
 //           services: serviceIdsWithPrice,
 //       });
 //     }
-   
+
 //     // Check password validity
 //     const isPasswordValid = await bcrypt.compare(
 //       password,
@@ -895,10 +902,10 @@ export const setUserLocation = catchAsync(async (req: CustomRequest, res: Respon
 export const getNearbyMechanics = catchAsync(async (req: CustomRequest, res: Response) => {
   const { maxDistance = 100000 } = req.body;  // maxDistance in meters (default 5km)
   const userId = req.user.id; // Get user ID from req.user
-  
+
   // Fetch the user from the database using the userId
   const user = await UserModel.findById(userId);
-  
+
   // If user not found, return error
   if (!user) {
     return sendResponse(res, {

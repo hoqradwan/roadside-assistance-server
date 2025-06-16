@@ -300,7 +300,7 @@ const initSocketIO = (server: HttpServer) => {
 
     userData = getUserData(token as string);
 
-    console.log({userData})
+    console.log({ userData })
 
     // console.log("userData", userData);
 
@@ -367,24 +367,27 @@ const initSocketIO = (server: HttpServer) => {
     let lastUpdateTime = Date.now();
 
     socket.on("client_location", async (data, callback) => {
-      const longitude = Number(data.lang);
-      const latitude = Number(data.lat);
-
-      // console.log(locationBuffer, "from socket")
+      const longitude = (data.lng);
+      const latitude = (data.lat);
+      const userId = data.user;
+      console.log(latitude, longitude, userId)
+      console.log(locationBuffer, "from socket")
       locationBuffer.push({ longitude, latitude });
-
       if (locationBuffer.length >= LOCATION_LIMIT) {
         const currentTime = Date.now();
         const timeElapsed = currentTime - lastUpdateTime;
+        console.log("in client location", locationBuffer, locationBuffer.length)
+
         if (timeElapsed >= 30 * 1000) {
           try {
             const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
-            await UserModel.findByIdAndUpdate(
-              userData._id,
+
+            const result = await UserModel.findByIdAndUpdate(
+              userId,
               { $set: { "location.coordinates": [longitude, latitude] } },
               { new: true }
             );
-
+            console.log(result)
             // const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
 
             // console.log({"location.coordinates": lastLocation})

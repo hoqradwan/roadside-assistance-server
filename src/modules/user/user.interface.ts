@@ -15,10 +15,7 @@ export type IUser = {
   confirmPassword?: string;
   phone?: string;
   address?: string;
-  image?: {
-    publicFileURL: string;
-    path: string;
-  };
+ image?: string;
   role: "admin" | "user" | "mechanic";
   status: "active" | "blocked";
   age: string;

@@ -19,6 +19,7 @@ import {
   hashPassword,
   saveOTP,
   sendOTPEmail,
+  updateProfileIntoDB,
   updateUserById,
   userDelete,
 } from "./user.service";
@@ -967,5 +968,52 @@ export const getNearbyMechanics = catchAsync(async (req: CustomRequest, res: Res
     success: true,
     message: "Nearby mechanics found successfully.",
     data: nearbyMechanics
+  });
+});
+
+export const getProfile = catchAsync(async(req:CustomRequest,res:Response)=>{
+  const { id: userId } = req.user;
+  const user = await findUserById(userId);
+  if(!user){
+    throw new Error("User not found");
+  }
+    sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "profile information retrieved successfully",
+    data: user,
+    pagination: undefined,
+  });
+})
+
+
+export const updateProfile = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id: userId } = req.user;
+  
+  // Logging the incoming data to verify
+  console.log(req.body.data, req.body.driverLicense, req.body.image, "req.body.data");
+
+  // Parse the data sent as JSON in req.body
+  const formattedData = JSON.parse(req.body.data);
+
+  // Get the profile image and driver license from the files (S3 URLs)
+  const image =
+    req.files &&
+    typeof req.files === "object" &&
+    "image" in req.files &&
+    Array.isArray((req.files as { [fieldname: string]: Express.Multer.File[] })["image"])
+      ? ((req.files as { [fieldname: string]: (Express.Multer.File & { location?: string })[] })["image"][0].location ?? null)
+      : null;
+
+  
+  // Pass the parsed data and the file URLs to the service function
+  const result = await updateProfileIntoDB(userId, formattedData, image);
+
+  // Send response after successful update
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User updated successfully",
+    data: result,
   });
 });

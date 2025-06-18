@@ -7,7 +7,16 @@ import { CustomRequest } from "../../utils/customRequest";
 import { Response } from "express";
 
 export const createService = catchAsync(async (req, res) => {
-    const result = await createServiceIntoDB(req.body);
+    const formattedData = JSON.parse(req.body.data);
+  const image =
+    req.files &&
+    typeof req.files === "object" &&
+    "image" in req.files &&
+    Array.isArray((req.files as { [fieldname: string]: Express.Multer.File[] })["image"])
+      ? ((req.files as { [fieldname: string]: (Express.Multer.File & { location?: string })[] })["image"][0].location ?? null)
+      : null;
+
+    const result = await createServiceIntoDB(formattedData, image);
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
@@ -39,6 +48,14 @@ export const getServiceById = catchAsync(async (req, res) => {
 export const updateService = catchAsync(async (req, res) => {
     const result = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!result) throw new Error("Service not found");
+      const image =
+    req.files &&
+    typeof req.files === "object" &&
+    "image" in req.files &&
+    Array.isArray((req.files as { [fieldname: string]: Express.Multer.File[] })["image"])
+      ? ((req.files as { [fieldname: string]: (Express.Multer.File & { location?: string })[] })["image"][0].location ?? null)
+      : null;
+
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,

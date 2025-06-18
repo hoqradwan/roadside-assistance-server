@@ -42,7 +42,7 @@ export const getAllMechanicsFromDB = async ({
     });
 
     // Query the mechanics with pagination
-    const mechanics = await Mechanic.find()
+    const mechanics = await Mechanic.find().populate('user') // Populate user details
         .skip((currentPage - 1) * limit) // Skip the previous pages
         .limit(limit); // Limit the number of results
 

@@ -30,17 +30,8 @@ const UserSchema = new Schema<IUser>(
     phone: { type: String, trim: true },
     address: { type: String, trim: true },
 
-    image: {
-      type: {
-        publicFileURL: { type: String, trim: true },
-        path: { type: String, trim: true },
-      },
-      required: false,
-      default: {
-        publicFileURL: "/images/user.png",
-        path: "public\\images\\user.png",
-      },
-    },
+    image : { type: String, default: "" },
+
     role: {
       type: String,
       enum: ["admin", "user", "mechanic"],

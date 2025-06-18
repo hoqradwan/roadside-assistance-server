@@ -257,6 +257,37 @@ export const getDistanceAndETA = async (userId: string, mechanicId: string) => {
     eta: `${result.estimatedTimeInMinutes} mins`,
   };
 };
+
+export const updateProfileIntoDB = async (
+  userId: string,
+  formattedData: any,
+  image: any,
+) => {
+  // Find the user by their ID
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Prepare the update object
+  const updateData: any = {
+    name: formattedData.name || user.name,
+    phone: formattedData.phone || user.phone,
+  };
+
+  // Only update profileImage if it's provided
+  if (image) {
+    updateData.image = image;
+  }
+
+
+
+  // Update the user in the database
+  const updatedUser = await UserModel.findByIdAndUpdate(userId, updateData, { new: true });
+
+  return updatedUser;
+};
+
 //   const user = await UserModel.findById(userId);
 //   const mechanicData = await Mechanic.findById(mechanicId).populate("user");
 

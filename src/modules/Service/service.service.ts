@@ -2,10 +2,9 @@ import mongoose from "mongoose";
 import Mechanic from "../Mechanic/mechanic.model";
 import Service, { IService } from "./service.model";
 
-export const createServiceIntoDB = async (service:IService) => {
-    const existingService = await Service.findOne({name:service.name});
-    if(existingService) throw new Error("Service already exists");
-    const result = await Service.create(service);
+export const createServiceIntoDB = async (service: any, image: any) => {
+   
+    const result = await Service.create({ name: service.name, image });
     return result;
 };
 

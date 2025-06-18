@@ -8,7 +8,8 @@ export interface IService extends Document {
 }
 
 const ServiceSchema: Schema = new Schema({
-    name: { type: String, required: true },
+    image : { type: String, default: "" },
+    name: { type: String, required: true, unique : true },
 });
 
 const Service = mongoose.model<IService>('Service', ServiceSchema);

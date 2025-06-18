@@ -18,6 +18,8 @@ import {
   getUserToMechanicDistance,
   setUserLocation,
   getNearbyMechanics,
+  getProfile,
+  updateProfile,
 } from "./user.controller";
 import upload from "../../middlewares/fileUploadNormal";
 import { adminMiddleware } from "../../middlewares/auth";
@@ -39,8 +41,19 @@ router.post("/resend", resendOTP);
 router.post("/verify-forget-otp", verifyForgotPasswordOTP);
 router.post("/change-password", changePassword);
 router.post("/update", upload.single("image"), updateUser);
-
+router.post(
+  "/updateProfile",  // POST request to update the profile
+  adminMiddleware("user","mechanic","admin"),  // Admin middleware (authentication/authorization)
+  upload.fields([
+    { name: "image", maxCount: 1 },  // Allow 1 image file
+     // Allow 1 driver license file
+  ]),
+  updateProfile  // Controller to update the user profile after file upload
+);
 router.get("/my-profile", getSelfInfo);
+router.get("/profile",adminMiddleware("admin","user","mechanic"), getProfile);
+
+// router.get("/profile", adminMiddleware("admin","user","mechanic") getProfile);
 router.get("/all", adminMiddleware("admin"), getAllUsers);
 router.get("/:userId/:mechanicId", getUserToMechanicDistance);
 

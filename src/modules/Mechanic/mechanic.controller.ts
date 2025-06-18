@@ -25,13 +25,14 @@ export const createMechanic = catchAsync(async (req, res) => {
     })
 })
 
-export const getAllMechanics = catchAsync(async (req, res) => {
+export const getAllMechanics = catchAsync(async (req : CustomRequest, res) => {
     const { currentPage = 1, limit = 10 } = req.query;
-
+    const {id : userId} = req.user;
     // Call the service function to get the mechanics with pagination
     const result = await getAllMechanicsFromDB({
         currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
         limit: parseInt(limit as string),  // Ensure limit is a number
+        userId: userId // Pass the userId to the service function
     });
 
     // Send the response to the client

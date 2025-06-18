@@ -18,7 +18,6 @@ export const adminMiddleware = (...roles: Role[]) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY as string);
-
       req.user = decoded; // Attach user data to request object
       // Check if the user has one of the required roles
       if (roles.length > 0 && !roles.includes((req.user as jwt.JwtPayload)?.role)) {

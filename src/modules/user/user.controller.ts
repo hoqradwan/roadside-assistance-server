@@ -35,8 +35,6 @@ import {
 // import { emitNotification } from "../../utils/socket";
 import httpStatus from "http-status";
 import { CustomRequest } from "../../utils/customRequest";
-import Service from "../Service/service.model";
-import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -220,7 +218,7 @@ export const forgotPassword = catchAsync(
 
     await saveOTP(email, otp);
 
-    const token = jwt.sign({ email }, JWT_SECRET_KEY as string, {
+    const token = jwt.sign({ email, role: user.role }, JWT_SECRET_KEY as string, {
       expiresIn: "7d",
     });
 
@@ -267,24 +265,26 @@ export const forgotPassword = catchAsync(
       message: "OTP sent to your email. Please check!",
       data: {
         token: token,
+        role: user.role
       },
     });
   },
 );
 
-export const resetPassword = catchAsync(async (req: Request, res: Response) => {
+export const resetPassword = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { email,role } = req.user;
+  console.log(email,role)
+  // const email = req.query.email as string;
 
-  const email = req.query.email as string;
+  const { newPassword, confirmPassword } = req.body;
 
-  const { password, confirmPassword } = req.body;
-
-  if (!password || !confirmPassword) {
+  if (!newPassword || !confirmPassword) {
     return sendError(res, httpStatus.BAD_REQUEST, {
-      message: "Please provide both password and confirmPassword.",
+      message: "Please provide both newPassword and confirmPassword.",
     });
   }
 
-  if (password !== confirmPassword) {
+  if (newPassword !== confirmPassword) {
     return sendError(res, httpStatus.BAD_REQUEST, {
       message: "Passwords do not match.",
     });
@@ -299,15 +299,15 @@ export const resetPassword = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  const newPassword = await hashPassword(password);
-  user.password = newPassword;
+  const newPass = await hashPassword(newPassword);
+  user.password = newPass;
   await user.save();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Password reset successfully.",
-    data: {name : user.name, email: user.email, role: user.role},
+    data: { name: user.name, email: user.email, role: user.role },
   });
 });
 
@@ -398,10 +398,7 @@ export const verifyForgotPasswordOTP = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: "OTP verified successfully.",
-      data: {
-        name,
-        email,
-      },
+      data: null
     });
   },
 );
@@ -459,7 +456,7 @@ export const changePassword = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: "You have successfully changed the password.",
-      data: {name:user.name, email: user.email, role: user.role},
+      data: { name: user.name, email: user.email, role: user.role },
     });
   },
 );

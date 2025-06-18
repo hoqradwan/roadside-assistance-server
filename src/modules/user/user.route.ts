@@ -33,7 +33,7 @@ router.post("/login", loginUser);
 // router.post("/admin-login", adminloginUser);
 // router.post("/mechanic-login", mechanicloginUser);
 router.post("/forget-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+router.post("/reset-password", adminMiddleware("user","mechanic"), resetPassword);
 router.post("/verify-otp", verifyOTP);
 router.post("/resend", resendOTP);
 router.post("/verify-forget-otp", verifyForgotPasswordOTP);

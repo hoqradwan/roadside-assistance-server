@@ -9,7 +9,7 @@ interface IFavourite extends Document {
 const FavouriteSchema = new Schema<IFavourite>(
     {
         user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-        mechanic: { type: Schema.Types.ObjectId, ref: 'Mechanic', required: true },
+        mechanic: { type: Schema.Types.ObjectId, ref: 'User', required: true },
         isFavorite: { type: Boolean, default: true },
     },
     { timestamps: true }

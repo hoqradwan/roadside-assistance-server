@@ -3,7 +3,7 @@ import { model, Schema } from "mongoose";
 const mechanicServiceRateSchema = new Schema({
     mechanic: {
         type: Schema.Types.ObjectId,
-        ref: "Mechanic",
+        ref: "User",
         required: true,
     },
     services :[{

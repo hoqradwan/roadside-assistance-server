@@ -36,6 +36,9 @@ import {
 // import { emitNotification } from "../../utils/socket";
 import httpStatus from "http-status";
 import { CustomRequest } from "../../utils/customRequest";
+import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
+import Service from "../Service/service.model";
+import Mechanic from "../Mechanic/mechanic.model";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -160,7 +163,37 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
       message: "Wrong password!",
     });
   }
+  if(user.role === "mechanic" ) {
+    const mechanicExist = await Mechanic.findOne({ user: user._id });
+    if(!mechanicExist) {
+      await Mechanic.create({
+        user : user._id,
+        services: [],
+        isAvailable: true,
+        rating : 0,
+        experience : 0,
+        description: "",
+        serviceCount : 0,
+        
+      })
+    }
+  const isMechanicServiceRateExist = await MechanicServiceRateModel.findOne({
+      mechanic: user._id,
+    });
+    if (!isMechanicServiceRateExist) {
+      const allServices = await Service.find({});
+      const serviceIdsWithPrice = allServices.map((service) => {
+          return { service: service._id, price: 0 };
+      }
+      );
 
+      await MechanicServiceRateModel.create({
+          mechanic: user._id,
+          services: serviceIdsWithPrice,
+      });
+    }
+  }
+  
   const token = generateToken({
     id: user._id,
     name: user.name,

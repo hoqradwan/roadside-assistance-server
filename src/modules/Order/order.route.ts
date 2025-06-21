@@ -7,7 +7,7 @@ const router = Router();
 // Create a new order
 router.get('/user',adminMiddleware("admin","user"), getOrdersByUser);
 router.get('/status',adminMiddleware("admin","mechanic"), getOrdersByStatus);
-router.get('/all',adminMiddleware("admin"), getOrders);
+router.get('/all',adminMiddleware("admin"), getOrders)
 router.post('/', adminMiddleware("user"), createOrder);
 router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
 router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);

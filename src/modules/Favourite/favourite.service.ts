@@ -1,8 +1,9 @@
 import Mechanic from "../Mechanic/mechanic.model";
+import { UserModel } from "../user/user.model";
 import Favourite from "./favourite.model";
 
 export const addFavouriteIntoDB = async (mechanic: string, userId: string) => {
-    const mecha = await Mechanic.findById(mechanic);
+    const mecha = await UserModel.findById(mechanic);
     if (!mecha) throw new Error("Mechanic not found");
     const existingFavourite = await Favourite.findOne({ mechanic, user: userId });
     if (existingFavourite) throw new Error("mechanic already in favourites");

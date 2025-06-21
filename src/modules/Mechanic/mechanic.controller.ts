@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
 import Mechanic from "./mechanic.model";
-import { createMechanicIntoDB, getAllMechanicsFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
+import { createMechanicIntoDB,  getAllMechanicsFromDB, getAllTestMechanicsFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
 
 export const makeMechanic = catchAsync(async (req, res) => {
     const { email } = req.body;
@@ -43,9 +43,22 @@ export const getAllMechanics = catchAsync(async (req : CustomRequest, res) => {
         data: result,
     });
 });
+
+export const getSingleMechanic = catchAsync(async (req : CustomRequest, res) => {
+    const mechanicId = req.params.id; // Use the ID from the request params or the user ID if not provided
+    // Call the service function to get the mechanics with pagination
+    const result = await getSingleMechanicFromDB(mechanicId);
+    // Send the response to the client
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Mechanic retrieved successfully',
+        data: result,
+    });
+});
 export const getSortedMechanics = catchAsync(async (req: CustomRequest, res: Response) => {
     const { id: currentUserId } = req.user;
-    const { sortBy = 'rating', serviceName } = req.query; // Default to 'rating'
+    const { sortBy = 'rating', serviceName = '' } = req.query; // Default to 'rating'
 
     const sortedMechanics = await sortMechanics({
         currentUserId,
@@ -105,3 +118,40 @@ export const deleteMechanic = catchAsync(async (req, res) => {
         data: result
     })
 })
+export const getAllTestMechanics = catchAsync(async (req : CustomRequest, res) => {
+    const { currentPage = 1, limit = 10 } = req.query;
+    const {id : userId} = req.user;
+    // Call the service function to get the mechanics with pagination
+    const result = await getAllTestMechanicsFromDB({
+        currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
+        limit: parseInt(limit as string),  // Ensure limit is a number
+        userId: userId // Pass the userId to the service function
+    });
+
+    // Send the response to the client
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'All mechanics fetched successfully',
+        data: result,
+    });
+});
+// export const getSortedMechanicsWithSearch = catchAsync(async (req: CustomRequest, res: Response) => {
+//     const { id: currentUserId } = req.user;
+//     const { currentPage = 1, limit = 10, sortBy = 'rating', serviceName = '' } = req.query; // Default to 'rating'
+
+//     const result = await getAllMechanicsWithSortingAndSearch({
+//         currentPage: parseInt(currentPage as string), // Ensure it's a number
+//         limit: parseInt(limit as string),  // Ensure it's a number
+//         userId: currentUserId, // Pass the user ID
+//         sortBy: sortBy as 'rating' | 'nearest',
+//         serviceName: serviceName as string,  // Filter by service name if provided
+//     });
+
+//     sendResponse(res, {
+//         statusCode: 200,
+//         success: true,
+//         message: `Mechanics sorted by ${sortBy} fetched successfully`,
+//         data: result,
+//     });
+// });

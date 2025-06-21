@@ -1,11 +1,11 @@
 import { Router, Request } from 'express';
 import { adminMiddleware } from '../../middlewares/auth';
-import { addFavourite, getFavourites, removeFavourite } from './favourite.controller';
+import { addFavourite, getFavourites, removeFavourite, toggleFavourite } from './favourite.controller';
 
 const router = Router();
 
+router.post('/toggle/:id', adminMiddleware("user"), toggleFavourite);
 router.post('/', adminMiddleware("user"), addFavourite);
 router.get('/all', adminMiddleware("user"), getFavourites);
-router.delete('/:id', adminMiddleware("user"), removeFavourite);
 
 export const FavouriteRoutes = router;

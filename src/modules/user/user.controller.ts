@@ -1006,7 +1006,7 @@ export const getNearbyMechanics = catchAsync(async (req: CustomRequest, res: Res
 
 export const getProfile = catchAsync(async(req:CustomRequest,res:Response)=>{
   const { id: userId } = req.user;
-  const user = await findUserById(userId);
+  const user = await UserModel.findById(userId).select("-password -__v -createdAt -updatedAt -cuponCode -otp -isDeleted -status -isActive -isDeleted -expiryDate -activeDate -uniqueUserId");
   if(!user){
     throw new Error("User not found");
   }

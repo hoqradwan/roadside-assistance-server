@@ -4,7 +4,7 @@ import catchAsync from "../../utils/catchAsync";
 import { Request, Response } from "express";
 import Favourite from "./favourite.model";
 import { CustomRequest } from "../../utils/customRequest";
-import { addFavouriteIntoDB, getFavouritesFromDB } from "./favourite.service";
+import { addFavouriteIntoDB, getFavouritesFromDB, toggleFavouriteIntoDB } from "./favourite.service";
 
 export const addFavourite =catchAsync(async (req: CustomRequest, res: Response) => {
     const { mechanic } = req.body;
@@ -16,6 +16,18 @@ export const addFavourite =catchAsync(async (req: CustomRequest, res: Response) 
         success: true,
         message: "Mechanic added to favourites",
         data: null
+    })
+})
+export const toggleFavourite =catchAsync(async (req: CustomRequest, res: Response) => {
+    const mechanic = req.params.id;
+    const userId = req.user.id;
+    const result =  await toggleFavouriteIntoDB(mechanic, userId);
+   
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: "Mechanic favourite toggled successfully",
+        data: result
     })
 })
 

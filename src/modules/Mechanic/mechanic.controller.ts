@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
 import Mechanic from "./mechanic.model";
-import { createMechanicIntoDB,  getAllMechanicsFromDB, getAllTestMechanicsFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
+import { createMechanicIntoDB,  getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
 
 export const makeMechanic = catchAsync(async (req, res) => {
     const { email } = req.body;
@@ -44,6 +44,18 @@ export const getAllMechanics = catchAsync(async (req : CustomRequest, res) => {
     });
 });
 
+export const getMechanicWithServicePrice = catchAsync(async (req : CustomRequest, res) => {
+    const mechanicId = req.params.id; // Use the ID from the request params or the user ID if not provided
+    // Call the service function to get the mechanics with pagination
+    const result = await getMechanicWithServicePriceFromDB(mechanicId);
+    // Send the response to the client
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Mechanic with service prices retrieved successfully',
+        data: result,
+    });
+});
 export const getSingleMechanic = catchAsync(async (req : CustomRequest, res) => {
     const mechanicId = req.params.id; // Use the ID from the request params or the user ID if not provided
     // Call the service function to get the mechanics with pagination
@@ -119,13 +131,15 @@ export const deleteMechanic = catchAsync(async (req, res) => {
     })
 })
 export const getAllTestMechanics = catchAsync(async (req : CustomRequest, res) => {
-    const { currentPage = 1, limit = 10 } = req.query;
+    const { currentPage = 1, limit = 10, serviceName } = req.query;
     const {id : userId} = req.user;
+    
     // Call the service function to get the mechanics with pagination
     const result = await getAllTestMechanicsFromDB({
         currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
         limit: parseInt(limit as string),  // Ensure limit is a number
-        userId: userId // Pass the userId to the service function
+        userId: userId, // Pass the userId to the service function
+        serviceName: serviceName as string // Pass the serviceName from query params
     });
 
     // Send the response to the client

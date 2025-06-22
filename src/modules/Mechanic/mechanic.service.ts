@@ -6,7 +6,7 @@ import Order from "../Order/order.model";
 import Service from "../Service/service.model";
 import { UserModel } from "../user/user.model";
 import Mechanic, { IMechanic } from "./mechanic.model";
-
+import { ObjectId } from "mongoose";
 export const makeMechanicIntoDB = async (email: string) => {
   const user = await UserModel.findOne({ email });
   if (!user) throw new Error("User not found");
@@ -24,7 +24,7 @@ export const createMechanicIntoDB = async (mechanic: IMechanic) => {
   const services = await Service.find({ _id: { $in: mechanic.services } });
   if (services.length !== mechanic.services.length) throw new Error("Service not found");
   const result = await Mechanic.create(mechanic);
-  return result;
+  return result
 }
 
 export const getAllMechanicsFromDB = async ({
@@ -269,11 +269,40 @@ export const toggleAvailabilityIntoDB = async (mechanicId: string) => {
 }
 
 export const getSingleMechanicFromDB = async (mechanicId: string) => {
-  const mechanic = await Mechanic.findById(mechanicId).populate('user');
+  // Fetch the mechanic from the User model
+  const mechanic = await UserModel.findById(mechanicId).select("-password -__v -location -createdAt -status -updatedAt -cuponCode -expiryDate -isDeleted -isActive -uniqueUserId -activeDate");
   if (!mechanic) throw new Error("Mechanic not found");
-  const serviceWithRate = await MechanicServiceRateModel.findOne({ mechanic: mechanic.user }).populate('services.service');
-  return {mechanic, serviceWithRate };
+
+  // Fetch the mechanic details from the Mechanic model
+  const mechanicDetails = await Mechanic.findOne({ user: mechanicId }).select("-__v -createdAt -updatedAt -serviceCount -services -uniqueMechanicId");
+  if (!mechanicDetails) {
+    throw new Error("Mechanic details not found");
+  }
+
+  // Fetch the services and rate
+  const serviceWithRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicDetails.user }).populate("services.service");
+
+  // Merge the mechanic and mechanicDetails objects under one object
+  const mergedMechanicData = {
+    _id: mechanic._id,
+    name: mechanic.name,
+    email: mechanic.email,
+    image: mechanic.image,
+    role: mechanic.role,
+    // Merge mechanicDetails data into this object
+    rating: mechanicDetails.rating,
+    experience: mechanicDetails.experience,
+    description: mechanicDetails.description,
+    isAvailable: mechanicDetails.isAvailable
+  };
+
+  // Return the merged data with the separate serviceWithRate
+  return {
+    mechanic: mergedMechanicData,
+    serviceWithRate,
+  };
 };
+
 /* {
   "car": "68514fa3b34a40f5e30d68a1",
   "pickupDate": "2025-07-10T10:00:00Z",
@@ -284,11 +313,244 @@ export const getSingleMechanicFromDB = async (mechanicId: string) => {
   "licenseNo": "A1234567"
 }
  */
+import mongoose from "mongoose";
+// export const getAllTestMechanicsFromDB = async ({
+//   currentPage,
+//   limit,
+//   userId,
+//   serviceName  // New parameter for searching service by name
+// }: {
+//   currentPage: number;
+//   limit: number;
+//   userId: string;
+//   serviceName?: string; // Optional serviceName parameter
+// }) => {
+//   const AVERAGE_SPEED_KMPH = 30;
+
+//   // Calculate the total number of mechanics
+//   const totalData = await Mechanic.countDocuments();
+
+//   // Use paginationBuilder to get pagination details
+//   const paginationInfo = paginationBuilder({
+//     totalData,
+//     currentPage,
+//     limit,
+//   });
+
+//   const user = await UserModel.findById(userId);
+
+//   if (!user || !user.location || !user.location.coordinates) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "User or location not found");
+//   }
+
+//   let geoNearResult = [];
+
+//   if (serviceName) {
+//     console.log("Searching for mechanics with service name:", serviceName);
+    
+//     // Step 1: Find mechanics who offer the service
+//     const mechanisWithService = await MechanicServiceRateModel.aggregate([
+//       {
+//         $lookup: {
+//           from: "services", // Lookup the services collection
+//           localField: "services.service", // Join on the service field in MechanicServiceRate
+//           foreignField: "_id", // Reference the Service collection's _id
+//           as: "servicesDetails",
+//         },
+//       },
+//       {
+//         $unwind: "$servicesDetails", // Unwind the services array
+//       },
+//       {
+//         $match: {
+//           "servicesDetails.name": { $regex: serviceName, $options: "i" }, // Match service name (case-insensitive)
+//         },
+//       },
+//     ]);
+
+//     // Step 2: Get geoNear results for each mechanic
+//     const geoNearResults = await Promise.all(
+//       mechanisWithService.map(async (mechanic) => {
+//         console.log(mechanic.mechanic);
+//         // Perform the geoNear aggregation for each mechanic
+//         const geoNearResult = await UserModel.aggregate([
+//           {
+//             $geoNear: {
+//               near: {
+//                 type: "Point",
+//                 coordinates: [user.location.coordinates[0], user.location.coordinates[1]],
+//               },
+//               key: "location", // Mechanic's location to calculate distance
+//               distanceField: "distanceInMeters",
+//               spherical: true,
+//             },
+//           },
+//           {
+//             $match: {
+//               role: "mechanic", // Only include mechanics
+//               _id: mechanic.mechanic, // Ensure we're looking up the correct mechanic
+//             },
+//           },
+//           {
+//             $lookup: {
+//               from: "favourites", // Lookup the favourites collection
+//               let: { mechanicId: "$_id" },
+//               pipeline: [
+//                 {
+//                   $match: {
+//                     $expr: {
+//                       $and: [
+//                         { $eq: ["$mechanic", "$$mechanicId"] },
+//                         { $eq: ["$user", new mongoose.Types.ObjectId(userId)] },
+//                         { $eq: ["$isFavorite", true] }
+//                       ]
+//                     }
+//                   }
+//                 }
+//               ],
+//               as: "favouriteInfo"
+//             }
+//           },
+//           {
+//             $project: {
+//               _id: 1,
+//               name: 1,
+//               image: 1,
+//               distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
+//               isFavourite: { 
+//                 $cond: { 
+//                   if: { $gt: [{ $size: "$favouriteInfo" }, 0] }, 
+//                   then: true, 
+//                   else: false 
+//                 } 
+//               }
+//             },
+//           },
+//           {
+//             $addFields: {
+//               estimatedTimeInMinutes: {
+//                 $ceil: {
+//                   $divide: [
+//                     { $multiply: ["$distanceInKm", 60] },
+//                     AVERAGE_SPEED_KMPH, // Define average speed constant, e.g., 30 km/h
+//                   ],
+//                 },
+//               },
+//             },
+//           },
+//         ]);
+//         console.log("geoNearResult for mechanic:", geoNearResult);
+//         return geoNearResult; // Return the geoNearResult for this mechanic
+//       })
+//     );
+//     // Flatten the array of geoNearResults
+//     geoNearResult = geoNearResults.flat();
+
+//   } else {
+//     // If no serviceName is provided, default to get all mechanics in the area
+//     geoNearResult = await UserModel.aggregate([
+//       {
+//         $geoNear: {
+//           near: {
+//             type: "Point",
+//             coordinates: [user.location.coordinates[0], user.location.coordinates[1]],
+//           },
+//           key: "location",
+//           distanceField: "distanceInMeters",
+//           spherical: true,
+//         },
+//       },
+//       {
+//         $match: {
+//           role: "mechanic",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "favourites", // Lookup the favourites collection
+//           let: { mechanicId: "$_id" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $and: [
+//                     { $eq: ["$mechanic", "$$mechanicId"] },
+//                     { $eq: ["$user", new mongoose.Types.ObjectId(userId)] },
+//                     { $eq: ["$isFavorite", true] }
+//                   ]
+//                 }
+//               }
+//             }
+//           ],
+//           as: "favouriteInfo"
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           name: 1,
+//           image: 1,
+//           distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
+//           isFavourite: { 
+//             $cond: { 
+//               if: { $gt: [{ $size: "$favouriteInfo" }, 0] }, 
+//               then: true, 
+//               else: false 
+//             } 
+//           }
+//         },
+//       },
+//       {
+//         $addFields: {
+//           estimatedTimeInMinutes: {
+//             $ceil: {
+//               $divide: [
+//                 { $multiply: ["$distanceInKm", 60] },
+//                 AVERAGE_SPEED_KMPH, // Define average speed constant, e.g., 30 km/h
+//               ],
+//             },
+//           },
+//         },
+//       },
+//     ]);
+//   }
+
+//   if (!geoNearResult.length) {
+//     throw new AppError(httpStatus.NOT_FOUND, "No mechanics found nearby");
+//   }
+
+//   // Map the result to return mechanic details and ETA
+//   const result = geoNearResult.map((mechanic) => ({
+//     mechanicId: mechanic._id,
+//     mechanicName: mechanic.mechanicName || mechanic.name,  // Use mechanicName from service or fallback to name
+//     mechanicImage: mechanic.mechanicImage || mechanic.image || "", // Image from the UserModel or fallback to empty
+//     price: mechanic.price || 0, // Include the service price
+//     distance: mechanic.distanceInKm ? `${mechanic.distanceInKm.toFixed(2)} km` : "N/A", // Handle undefined distance
+//     eta: mechanic.estimatedTimeInMinutes ? `${mechanic.estimatedTimeInMinutes} mins` : "N/A", // Handle undefined ETA
+//     isFavourite: mechanic.isFavourite || false, // Include the favourite status
+//   }));
+
+//   // Return paginated data and pagination info
+//   return {
+//     pagination: paginationInfo,
+//     data: result,  // Return the filtered mechanics
+//   };
+// };
+
+export const getMechanicWithServicePriceFromDB = async(mechanicId:string)=>{
+  const mechanic = await UserModel.findById(mechanicId).select("-password -__v -location -createdAt -status -updatedAt -cuponCode -expiryDate -isDeleted -isActive -uniqueUserId -activeDate");
+  if(mechanic.role !== "mechanic") throw new Error("User is not a mechanic");
+  if (!mechanic) throw new Error("Mechanic not found");
+    const serviceWithRate = await MechanicServiceRateModel.findOne({ mechanic:mechanicId }).populate("services.service").select("-__v -createdAt -updatedAt -mechanic ");
+return serviceWithRate
+
+}
+
 export const getAllTestMechanicsFromDB = async ({
   currentPage,
   limit,
   userId,
-  serviceName = "T" // New parameter for searching service by name
+  serviceName  // New parameter for searching service by name
 }: {
   currentPage: number;
   limit: number;
@@ -316,10 +578,9 @@ export const getAllTestMechanicsFromDB = async ({
   let geoNearResult = [];
 
   if (serviceName) {
-    console.log("Searching for mechanics with service name:", serviceName);
     
-    // Step 1: Find mechanics who offer the service
-    const mechanisWithService = await MechanicServiceRateModel.aggregate([
+    // Get unique mechanic IDs who offer the service
+    const uniqueMechanicIds = await MechanicServiceRateModel.aggregate([
       {
         $lookup: {
           from: "services", // Lookup the services collection
@@ -336,62 +597,89 @@ export const getAllTestMechanicsFromDB = async ({
           "servicesDetails.name": { $regex: serviceName, $options: "i" }, // Match service name (case-insensitive)
         },
       },
+      {
+        $group: {
+          _id: "$mechanic", // Group by mechanic ID to get unique mechanics
+        }
+      },
+      {
+        $project: {
+          mechanicId: "$_id",
+          _id: 0
+        }
+      }
     ]);
 
-    // console.log("mechanicWith service",mechanisWithService);
+    // Extract the mechanic IDs
+    const mechanicIds = uniqueMechanicIds.map(item => item.mechanicId);
 
-    // Step 2: Get geoNear results for each mechanic
-    const geoNearResults = await Promise.all(
-      mechanisWithService.map(async (mechanic) => {
-        mechanic.mechanic = mechanic.mechanic.toString();
-        console.log(mechanic.mechanic);
-        // Perform the geoNear aggregation for each mechanic
-        const geoNearResult = await UserModel.aggregate([
-          {
-            $geoNear: {
-              near: {
-                type: "Point",
-                coordinates: [user.location.coordinates[0], user.location.coordinates[1]],
-              },
-              key: "location", // Mechanic's location to calculate distance
-              distanceField: "distanceInMeters",
-              spherical: true,
+    // Perform geoNear aggregation with mechanic ID filter
+    geoNearResult = await UserModel.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [user.location.coordinates[0], user.location.coordinates[1]],
+          },
+          key: "location", // Mechanic's location to calculate distance
+          distanceField: "distanceInMeters",
+          spherical: true,
+        },
+      },
+      {
+        $match: {
+          role: "mechanic", // Only include mechanics
+          _id: { $in: mechanicIds }, // Filter by the mechanics who offer the service
+        },
+      },
+      {
+        $lookup: {
+          from: "favourites", // Lookup the favourites collection
+          let: { mechanicId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$mechanic", "$$mechanicId"] },
+                    { $eq: ["$user", new mongoose.Types.ObjectId(userId)] },
+                    { $eq: ["$isFavorite", true] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: "favouriteInfo"
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          image: 1,
+          distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
+          isFavourite: { 
+            $cond: { 
+              if: { $gt: [{ $size: "$favouriteInfo" }, 0] }, 
+              then: true, 
+              else: false 
+            } 
+          }
+        },
+      },
+      {
+        $addFields: {
+          estimatedTimeInMinutes: {
+            $ceil: {
+              $divide: [
+                { $multiply: ["$distanceInKm", 60] },
+                AVERAGE_SPEED_KMPH, // Define average speed constant, e.g., 30 km/h
+              ],
             },
           },
-          {
-            $match: {
-              role: "mechanic", // Only include mechanics
-              _id: mechanic.mechanic, // Ensure we're looking up the correct mechanic
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              image: 1,
-              distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
-            },
-          },
-          {
-            $addFields: {
-              estimatedTimeInMinutes: {
-                $ceil: {
-                  $divide: [
-                    { $multiply: ["$distanceInKm", 60] },
-                    AVERAGE_SPEED_KMPH, // Define average speed constant, e.g., 30 km/h
-                  ],
-                },
-              },
-            },
-          },
-        ]);
-        console.log("geoNearResult for mechanic:", geoNearResult);
-        return geoNearResult; // Return the geoNearResult for this mechanic
-      })
-    );
-    // console.log(geoNearResults);
-    // Flatten the array of geoNearResults
-    geoNearResult = geoNearResults.flat();
+        },
+      },
+    ]);
 
   } else {
     // If no serviceName is provided, default to get all mechanics in the area
@@ -413,11 +701,38 @@ export const getAllTestMechanicsFromDB = async ({
         },
       },
       {
+        $lookup: {
+          from: "favourites", // Lookup the favourites collection
+          let: { mechanicId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$mechanic", "$$mechanicId"] },
+                    { $eq: ["$user", new mongoose.Types.ObjectId(userId)] },
+                    { $eq: ["$isFavorite", true] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: "favouriteInfo"
+        }
+      },
+      {
         $project: {
           _id: 1,
           name: 1,
           image: 1,
           distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
+          isFavourite: { 
+            $cond: { 
+              if: { $gt: [{ $size: "$favouriteInfo" }, 0] }, 
+              then: true, 
+              else: false 
+            } 
+          }
         },
       },
       {
@@ -447,6 +762,7 @@ export const getAllTestMechanicsFromDB = async ({
     price: mechanic.price || 0, // Include the service price
     distance: mechanic.distanceInKm ? `${mechanic.distanceInKm.toFixed(2)} km` : "N/A", // Handle undefined distance
     eta: mechanic.estimatedTimeInMinutes ? `${mechanic.estimatedTimeInMinutes} mins` : "N/A", // Handle undefined ETA
+    isFavourite: mechanic.isFavourite || false, // Include the favourite status
   }));
 
   // Return paginated data and pagination info
@@ -455,6 +771,177 @@ export const getAllTestMechanicsFromDB = async ({
     data: result,  // Return the filtered mechanics
   };
 };
+// export const getAllTestMechanicsFromDB = async ({
+//   currentPage,
+//   limit,
+//   userId,
+//   serviceName = "T" // New parameter for searching service by name
+// }: {
+//   currentPage: number;
+//   limit: number;
+//   userId: string;
+//   serviceName?: string; // Optional serviceName parameter
+// }) => {
+//   const AVERAGE_SPEED_KMPH = 30;
+
+//   // Calculate the total number of mechanics
+//   const totalData = await Mechanic.countDocuments();
+
+//   // Use paginationBuilder to get pagination details
+//   const paginationInfo = paginationBuilder({
+//     totalData,
+//     currentPage,
+//     limit,
+//   });
+
+//   const user = await UserModel.findById(userId);
+
+//   if (!user || !user.location || !user.location.coordinates) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "User or location not found");
+//   }
+
+//   let geoNearResult = [];
+
+//   if (serviceName) {
+//     console.log("Searching for mechanics with service name:", serviceName);
+    
+//     // Step 1: Find mechanics who offer the service
+//     const mechanisWithService = await MechanicServiceRateModel.aggregate([
+//       {
+//         $lookup: {
+//           from: "services", // Lookup the services collection
+//           localField: "services.service", // Join on the service field in MechanicServiceRate
+//           foreignField: "_id", // Reference the Service collection's _id
+//           as: "servicesDetails",
+//         },
+//       },
+//       {
+//         $unwind: "$servicesDetails", // Unwind the services array
+//       },
+//       {
+//         $match: {
+//           "servicesDetails.name": { $regex: serviceName, $options: "i" }, // Match service name (case-insensitive)
+//         },
+//       },
+//     ]);
+
+//     // console.log("mechanicWith service",mechanisWithService);
+
+//     // Step 2: Get geoNear results for each mechanic
+//     const geoNearResults = await Promise.all(
+//       mechanisWithService.map(async (mechanic) => {
+//         // mechanic.mechanic = mechanic.mechanic;
+//         console.log(mechanic.mechanic);
+//         // Perform the geoNear aggregation for each mechanic
+//         const geoNearResult = await UserModel.aggregate([
+//           {
+//             $geoNear: {
+//               near: {
+//                 type: "Point",
+//                 coordinates: [user.location.coordinates[0], user.location.coordinates[1]],
+//               },
+//               key: "location", // Mechanic's location to calculate distance
+//               distanceField: "distanceInMeters",
+//               spherical: true,
+//             },
+//           },
+//           {
+//             $match: {
+//               role: "mechanic", // Only include mechanics
+//               _id: mechanic.mechanic, // Ensure we're looking up the correct mechanic
+//             },
+//           },
+//           {
+//             $project: {
+//               _id: 1,
+//               name: 1,
+//               image: 1,
+//               distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
+//             },
+//           },
+//           {
+//             $addFields: {
+//               estimatedTimeInMinutes: {
+//                 $ceil: {
+//                   $divide: [
+//                     { $multiply: ["$distanceInKm", 60] },
+//                     AVERAGE_SPEED_KMPH, // Define average speed constant, e.g., 30 km/h
+//                   ],
+//                 },
+//               },
+//             },
+//           },
+//         ]);
+//         console.log("geoNearResult for mechanic:", geoNearResult);
+//         return geoNearResult; // Return the geoNearResult for this mechanic
+//       })
+//     );
+//     // console.log(geoNearResults);
+//     // Flatten the array of geoNearResults
+//     geoNearResult = geoNearResults.flat();
+
+//   } else {
+//     // If no serviceName is provided, default to get all mechanics in the area
+//     geoNearResult = await UserModel.aggregate([
+//       {
+//         $geoNear: {
+//           near: {
+//             type: "Point",
+//             coordinates: [user.location.coordinates[0], user.location.coordinates[1]],
+//           },
+//           key: "location",
+//           distanceField: "distanceInMeters",
+//           spherical: true,
+//         },
+//       },
+//       {
+//         $match: {
+//           role: "mechanic",
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           name: 1,
+//           image: 1,
+//           distanceInKm: { $divide: ["$distanceInMeters", 1000] }, // Calculate distance in km
+//         },
+//       },
+//       {
+//         $addFields: {
+//           estimatedTimeInMinutes: {
+//             $ceil: {
+//               $divide: [
+//                 { $multiply: ["$distanceInKm", 60] },
+//                 AVERAGE_SPEED_KMPH, // Define average speed constant, e.g., 30 km/h
+//               ],
+//             },
+//           },
+//         },
+//       },
+//     ]);
+//   }
+
+//   if (!geoNearResult.length) {
+//     throw new AppError(httpStatus.NOT_FOUND, "No mechanics found nearby");
+//   }
+
+//   // Map the result to return mechanic details and ETA
+//   const result = geoNearResult.map((mechanic) => ({
+//     mechanicId: mechanic._id,
+//     mechanicName: mechanic.mechanicName || mechanic.name,  // Use mechanicName from service or fallback to name
+//     mechanicImage: mechanic.mechanicImage || mechanic.image || "", // Image from the UserModel or fallback to empty
+//     price: mechanic.price || 0, // Include the service price
+//     distance: mechanic.distanceInKm ? `${mechanic.distanceInKm.toFixed(2)} km` : "N/A", // Handle undefined distance
+//     eta: mechanic.estimatedTimeInMinutes ? `${mechanic.estimatedTimeInMinutes} mins` : "N/A", // Handle undefined ETA
+//   }));
+
+//   // Return paginated data and pagination info
+//   return {
+//     pagination: paginationInfo,
+//     data: result,  // Return the filtered mechanics
+//   };
+// };
 
 
 

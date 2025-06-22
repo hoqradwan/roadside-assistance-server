@@ -39,6 +39,7 @@ import { CustomRequest } from "../../utils/customRequest";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 import Service from "../Service/service.model";
 import Mechanic from "../Mechanic/mechanic.model";
+import { NotificationModel } from "../notifications/notification.model";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -1010,11 +1011,12 @@ export const getProfile = catchAsync(async(req:CustomRequest,res:Response)=>{
   if(!user){
     throw new Error("User not found");
   }
+  const notificationCount = await NotificationModel.countDocuments({ user: userId, isRead: false });
     sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "profile information retrieved successfully",
-    data: user,
+    data: {user, notificationCount},
     pagination: undefined,
   });
 })

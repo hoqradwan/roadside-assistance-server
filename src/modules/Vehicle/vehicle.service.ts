@@ -1,19 +1,16 @@
 import { IUser } from "../user/user.interface";
 import Vehicle, { IVehicle } from "./vehicle.model";
 
-export const createVehicleIntoDB = async (vehicle: IVehicle) => {
+export const createVehicleIntoDB = async (vehicle: IVehicle, userId : string) => {
     const existingVehicle = await Vehicle.findOne({ number: vehicle.number });
     if (existingVehicle) throw new Error("Vehicle already exists");
-    const result = await Vehicle.create(vehicle);
+    const result = await Vehicle.create({...vehicle, user: userId});
     return result;
 }
 
-export const getVehiclesFromDB = async (userData: Partial<IUser>) => {
-    if (userData.role === "user") {
-        const result = await Vehicle.find({ user: userData.id });
-        return result;
-    };
-    const result = await Vehicle.find();
+export const getVehiclesFromDB = async (userId : string) => {
+  
+    const result = await Vehicle.find({user: userId}).select("-__v ");
     return result;
 }
 export const getSingleVehicleFromDB = async (vehicleId: string, userData: Partial<IUser>) => {

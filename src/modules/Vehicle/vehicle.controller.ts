@@ -7,8 +7,9 @@ import { Request, Response } from "express";
 import { CustomRequest } from "../../utils/customRequest";
 import { get } from "mongoose";
 
-export const createVehicle = catchAsync(async (req :Request, res:Response) => {
-    const result = await createVehicleIntoDB(req.body);
+export const createVehicle = catchAsync(async (req :CustomRequest, res:Response) => {
+    const {id : userId} = req.user;
+    const result = await createVehicleIntoDB(req.body, userId);
     sendResponse(res, {
         statusCode: httpStatus.CREATED, success: true,
         message: "Vehicle created successfully",
@@ -17,7 +18,7 @@ export const createVehicle = catchAsync(async (req :Request, res:Response) => {
 })
 
 export const getVehicles = catchAsync(async (req :CustomRequest, res : Response) => {
-    const result = await getVehiclesFromDB(req.user);
+    const result = await getVehiclesFromDB(req.user.id);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,

@@ -5,7 +5,6 @@ export interface IVehicle extends Document {
     vehicleModel: string;
     brand: string;
     number: string;
-    description: string;
 }
 
 const VehicleSchema = new Schema<IVehicle>({
@@ -13,7 +12,6 @@ const VehicleSchema = new Schema<IVehicle>({
     vehicleModel: { type: String, required: true },
     brand: { type: String, required: true },
     number: { type: String, required: true },
-    description: { type: String, default: "description" },
 });
 
 const Vehicle = model<IVehicle>('Vehicle', VehicleSchema);

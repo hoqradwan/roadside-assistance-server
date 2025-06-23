@@ -13,6 +13,7 @@ import Vehicle from "../Vehicle/vehicle.model";
 import Service from "../Service/service.model";
 import { emitNotification } from "../../utils/socket";
 import { NotificationModel } from "../notifications/notification.model";
+import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 
 export const createOrderIntoDB = async (orderData: IOrder) => {
     const existingUser = await UserModel.findById(orderData.user);
@@ -31,12 +32,12 @@ export const createOrderIntoDB = async (orderData: IOrder) => {
     // if (existingServices.length !== orderData.services.length) {
     //     throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
     // }
-    const mechanicServices = await Mechanic.find({ services: { $eq: orderData.services } })
+    const mechanicServices = await MechanicServiceRateModel.find({ services: { $eq: orderData.services } })
     if (mechanicServices.length !== orderData.services.length) {
         throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide these services");
 
     }
-    const orderTotal = await Service.aggregate([
+    const orderTotal = await MechanicServiceRateModel.aggregate([
         { $match: { _id: { $in: orderData.services } } },
         { $group: { _id: null, total: { $sum: "$price" } } }
     ]);

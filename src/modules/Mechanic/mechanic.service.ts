@@ -577,7 +577,10 @@ export const getAllTestMechanicsFromDB = async ({
 
   let geoNearResult = [];
 
-  if (serviceName) {
+  // Clean and check if serviceName is provided AND not empty
+  const cleanServiceName = serviceName?.replace(/^["']|["']$/g, '').trim();
+  
+  if (cleanServiceName && cleanServiceName !== "") {
     
     // Get unique mechanic IDs who offer the service
     const uniqueMechanicIds = await MechanicServiceRateModel.aggregate([
@@ -594,7 +597,7 @@ export const getAllTestMechanicsFromDB = async ({
       },
       {
         $match: {
-          "servicesDetails.name": { $regex: serviceName, $options: "i" }, // Match service name (case-insensitive)
+          "servicesDetails.name": { $regex: cleanServiceName, $options: "i" }, // Match service name (case-insensitive) with cleaned value
         },
       },
       {
@@ -682,7 +685,7 @@ export const getAllTestMechanicsFromDB = async ({
     ]);
 
   } else {
-    // If no serviceName is provided, default to get all mechanics in the area
+    // If no serviceName is provided OR serviceName is empty, get all mechanics in the area
     geoNearResult = await UserModel.aggregate([
       {
         $geoNear: {

@@ -34,6 +34,6 @@ export const toggleFavouriteIntoDB = async (mechanic: string, userId: string) =>
 };
 
 export const getFavouritesFromDB = async (userId: string) => {
-    const result = await Favourite.find({ user: userId });
+    const result = await Favourite.find({ user: userId }).populate({ path: "mechanic", select: "-password -__v -cuponCode -isDeleted -isActive -uniqueUserId -location -expiryDate -activeDate -status -createdAt -updatedAt" });
     return result
   }

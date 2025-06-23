@@ -1016,7 +1016,7 @@ export const getProfile = catchAsync(async(req:CustomRequest,res:Response)=>{
     statusCode: httpStatus.OK,
     success: true,
     message: "profile information retrieved successfully",
-    data: {user, notificationCount},
+    data: {user, notificationCount : 5},
     pagination: undefined,
   });
 })

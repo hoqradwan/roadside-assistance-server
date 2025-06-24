@@ -14,37 +14,98 @@ import Service from "../Service/service.model";
 import { emitNotification } from "../../utils/socket";
 import { NotificationModel } from "../notifications/notification.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
+import mongoose from "mongoose";
 
-export const createOrderIntoDB = async (orderData: IOrder) => {
-    const existingUser = await UserModel.findById(orderData.user);
-    if (existingUser) {
+export const createOrderIntoDB = async (userId: string, orderData: IOrder) => {
+    // 1. Validate user exists
+    const existingUser = await UserModel.findById(userId);
+    if (!existingUser) {
         throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
-    const existingMechanic = await Mechanic.findById(orderData.mechanic);
-    if (existingMechanic) {
+
+    // 2. Validate mechanic exists
+    const existingMechanic = await UserModel.findById(orderData.mechanic);
+    if (!existingMechanic) {
         throw new AppError(httpStatus.NOT_FOUND, "Mechanic not found");
     }
+
+    // 3. Validate vehicle exists and belongs to the user
     const existingVehicle = await Vehicle.findById(orderData.vehicle);
-    if (existingVehicle) {
+    if (!existingVehicle) {
         throw new AppError(httpStatus.NOT_FOUND, "Vehicle not found");
     }
-    // const existingServices = await Service.find({ _id: { $in: orderData.services } });
-    // if (existingServices.length !== orderData.services.length) {
-    //     throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
-    // }
-    const mechanicServices = await MechanicServiceRateModel.find({ services: { $eq: orderData.services } })
-    if (mechanicServices.length !== orderData.services.length) {
-        throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide these services");
+    
 
+    // 4. Validate services exist
+    const existingServices = await Service.find({ _id: { $in: orderData.services } });
+    if (existingServices.length !== orderData.services.length) {
+        throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
     }
+
+    // 5. Check if mechanic provides all requested services
+    const mechanicServices = await MechanicServiceRateModel.find({ 
+        mechanic: orderData.mechanic,
+        "services.service": { $in: orderData.services } 
+    });
+
+    if (mechanicServices.length === 0) {
+        throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide any of these services");
+    }
+
+    // Extract all service IDs that the mechanic actually provides
+  const availableServiceIds = mechanicServices.flatMap(doc => 
+    doc.services
+        .filter(serviceObj => orderData.services.some(id => id.toString() === serviceObj.service.toString()))
+        .map(serviceObj => serviceObj.service.toString())
+);
+
+    // Check if all requested services are available
+    const uniqueAvailableServices = [...new Set(availableServiceIds)];
+    const allServicesAvailable = orderData.services.every(serviceId => 
+        uniqueAvailableServices.includes(serviceId.toString())
+    );
+
+    if (!allServicesAvailable) {
+        throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide all requested services");
+    }
+
+    // 6. Calculate total price for the services
     const orderTotal = await MechanicServiceRateModel.aggregate([
-        { $match: { _id: { $in: orderData.services } } },
-        { $group: { _id: null, total: { $sum: "$price" } } }
-    ]);
-    if (orderTotal.length === 0) {
-        throw new AppError(httpStatus.NOT_FOUND, "No services found for the given IDs");
+    // Match documents for this specific mechanic
+    { 
+        $match: {
+            mechanic: new mongoose.Types.ObjectId(orderData.mechanic.toString())
+        }
+    },
+    
+    // Unwind the services array
+    { $unwind: "$services" },
+    
+    // Match only the specific services we want
+    { 
+        $match: { 
+            "services.service": { 
+                $in: orderData.services.map(id => new mongoose.Types.ObjectId(id.toString()))
+            } 
+        } 
+    },
+    
+    // Group and sum the prices
+    { 
+        $group: { 
+            _id: null, 
+            total: { $sum: "$services.price" } 
+        } 
     }
+]);
+
+    if (orderTotal.length === 0) {
+        throw new AppError(httpStatus.NOT_FOUND, "No pricing found for the requested services");
+    }
+
     let total = orderTotal[0].total;
+
+    // 7. Apply commission/service charges
     const appService = await Commission.findOne({ applicable: "user" });
     if (appService) {
         if (appService.type === "number") {
@@ -53,10 +114,44 @@ export const createOrderIntoDB = async (orderData: IOrder) => {
             total += (total * appService.amount) / 100;
         }
     }
-    orderData.total = total; // Set the total in the order data
-    const order = await Order.create(orderData);
-    return order;
-}
+
+    // 8. Validate minimum order amount if needed
+    if (total <= 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid order total");
+    }
+
+    // 9. Create the order
+    const finalOrderData = {
+        ...orderData,
+        user: userId,
+        total: Math.round(total * 100) / 100, // Round to 2 decimal places
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+
+    // 10. Create order in a transaction (optional but recommended)
+    const session = await mongoose.startSession();
+    let order;
+    
+    try {
+        session.startTransaction();
+        
+        order = await Order.create([finalOrderData], { session });
+        
+        // You might want to update mechanic's order count or other related operations here
+        // await Mechanic.findByIdAndUpdate(orderData.mechanic, { $inc: { totalOrders: 1 } }, { session });
+        
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+
+    return order[0];
+};
 export const getOrdersFromDB = async ({
     currentPage,
     limit,

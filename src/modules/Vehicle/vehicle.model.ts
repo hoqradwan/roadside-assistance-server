@@ -7,13 +7,13 @@ export interface IVehicle extends Document {
     number: string;
 }
 
-const VehicleSchema = new Schema<IVehicle>({
+const VehicleSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    vehicleModel: { type: String, required: true },
+    model: { type: String, required: true },
     brand: { type: String, required: true },
     number: { type: String, required: true },
 });
 
-const Vehicle = model<IVehicle>('Vehicle', VehicleSchema);
+const Vehicle = model('Vehicle', VehicleSchema);
 
 export default Vehicle;

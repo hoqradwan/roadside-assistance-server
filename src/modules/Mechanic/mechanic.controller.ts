@@ -130,16 +130,29 @@ export const deleteMechanic = catchAsync(async (req, res) => {
         data: result
     })
 })
-export const getAllTestMechanics = catchAsync(async (req : CustomRequest, res) => {
+export const getAllTestMechanics = catchAsync(async (req: CustomRequest, res) => {
     const { currentPage = 1, limit = 10, serviceName } = req.query;
-    const {id : userId} = req.user;
+    const { id: userId } = req.user;
     
+    // Properly handle serviceName - convert empty strings and "undefined" to undefined
+    let cleanedServiceName: string | undefined = serviceName as string;
+    
+    if (!cleanedServiceName || 
+        cleanedServiceName === '' || 
+        cleanedServiceName === '""' || 
+        cleanedServiceName === "''" ||
+        cleanedServiceName === 'undefined' ||
+        cleanedServiceName === 'null') {
+        cleanedServiceName = undefined;
+    }
+    console.log("Hiting")
+    console.log("cleanedServiceName", cleanedServiceName);
     // Call the service function to get the mechanics with pagination
     const result = await getAllTestMechanicsFromDB({
         currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
         limit: parseInt(limit as string),  // Ensure limit is a number
         userId: userId, // Pass the userId to the service function
-        serviceName: serviceName as string // Pass the serviceName from query params
+        serviceName: cleanedServiceName // Pass the cleaned serviceName (undefined for empty cases)
     });
 
     // Send the response to the client

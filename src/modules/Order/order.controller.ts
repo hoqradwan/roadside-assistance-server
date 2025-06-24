@@ -5,8 +5,10 @@ import Order from "./order.model";
 import { createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
-export const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await createOrderIntoDB(req.body);
+export const createOrder = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id: userId } = req.user;
+  const orderData = req.body;
+  const result = await createOrderIntoDB(userId,orderData);
   sendResponse(res, {
     statusCode: 200,
     success: true,

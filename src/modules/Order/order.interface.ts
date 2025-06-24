@@ -8,6 +8,7 @@ export interface IOrder extends Document {
     status: string;
     payment: 'online' | 'cash';
     uniqueOrderId: string;
+    additionalNotes ?: string;
     address: string;
     streetNo: string;
     total : number;

@@ -29,9 +29,7 @@ const UserSchema = new Schema<IUser>(
     confirmPassword: { type: String, trim: true },
     phone: { type: String, trim: true },
     address: { type: String, trim: true },
-
     image : { type: String, default: "" },
-
     role: {
       type: String,
       enum: ["admin", "user", "mechanic"],
@@ -39,26 +37,10 @@ const UserSchema = new Schema<IUser>(
     },
     status: {
       type: String,
-
       enum: ["active", "blocked"],
       default: "active", // Default value set to active
     },
-    age: {
-      type: String,
-    },
-    bio: {
-      type: String,
-    },
-    about: {
-      type: String,
-    },
-    gender: {
-      type: String,
-    },
-    cuponCode: {
-      type: String, // Store the name of the promo code
-      default: "", // Default value will be an empty string
-    },
+   
     location: {
       type: {
         type: String,
@@ -70,23 +52,12 @@ const UserSchema = new Schema<IUser>(
         default: [0, 0],
       },
     },
-    expiryDate: {
-      type: Date, // Store the name of the promo code
-      default: null, // Default value will be an empty string
-    },
-    activeDate: {
-      type: Date, // Store the name of the promo code
-      default: null, // Default value will be an empty string
-    },
-
+  
     isDeleted: {
       type: Boolean,
       default: false,
     },
-    isActive : {
-      type : Boolean,
-      default : false
-    },
+
     uniqueUserId: {
       type: String,
       default: generateUniqueId,

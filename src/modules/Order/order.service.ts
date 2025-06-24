@@ -172,10 +172,15 @@ export const getOrdersFromDB = async ({
 }
 export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
     if (userData.role === 'user') {
-        const result = await Order.findOne({ user: userData.id }).populate('mechanic').populate('vehicle').populate('user');
+        const result = await Order.findOne({ user: userData.id }).populate({path:'mechanic',select:"name image email"}).populate('vehicle').populate({path:'user',select:"name image email phone"})
+        .populate({
+        path: 'services',
+        model: 'Service', // Explicitly specify model if needed
+        select: 'name' // Select fields you want
+    });
         return result;
     }
-    const result = await Order.findById(orderId).populate('mechanic').populate('vehicle').populate('user');
+    const result = await Order.findById(orderId).populate({path:'mechanic',select:"name image email phone"}).populate('vehicle').populate({path:'user',select:"name image email phone"});
     return result;
 
 }

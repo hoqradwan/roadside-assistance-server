@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { createCommissionIntoDB, deleteCommissionIntoDB, getCommissionsFromDB, updateCommissionIntoDB } from "./commission.service";
+import { createCommissionIntoDB, deleteCommissionIntoDB, getAppServiceFromDB, getCommissionsFromDB, updateCommissionIntoDB } from "./commission.service";
 import { Request, Response } from "express";
 
 export const getCommissions = catchAsync(async (req : Request, res : Response) => {
@@ -10,6 +10,15 @@ export const getCommissions = catchAsync(async (req : Request, res : Response) =
         statusCode : httpStatus.OK,
         success : true,
         message : "Commissions fetched successfully",
+        data : result
+    })
+})
+export const getAppService = catchAsync(async (req : Request, res : Response) => {
+    const result = await getAppServiceFromDB();
+    sendResponse(res, {
+        statusCode : httpStatus.OK,
+        success : true,
+        message : "App service charge fetched successfully",
         data : result
     })
 })

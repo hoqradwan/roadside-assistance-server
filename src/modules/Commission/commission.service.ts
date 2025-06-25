@@ -6,6 +6,13 @@ import { Commission } from "./commission.model";
 export const getCommissionsFromDB = async () => {
     return await Commission.find();
 }   
+export const getAppServiceFromDB = async () => {
+    const appService = await Commission.findOne({ applicable: "user" }).select("amount");
+    if (!appService) {
+        throw new AppError(httpStatus.NOT_FOUND, "App service not found");
+    }
+    return appService;
+}   
 export const createCommissionIntoDB = async (commissionData : ICommission) => {
     const commission = await Commission.findOne({applicable: commissionData.applicable});
     if(commission) {

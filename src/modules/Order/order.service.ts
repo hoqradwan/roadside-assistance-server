@@ -16,259 +16,281 @@ import { NotificationModel } from "../notifications/notification.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 import mongoose from "mongoose";
 
-export const createOrderIntoDB = async (userId: string, orderData: IOrder) => {
-    // 1. Validate user exists
-    const existingUser = await UserModel.findById(userId);
-    if (!existingUser) {
-        throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    }
+export const createOrderIntoDB = async (userId: string, orderData: any) => {
+  // 1. Validate user exists
+  const existingUser = await UserModel.findById(userId);
+  if (!existingUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
 
-    // 2. Validate mechanic exists
-    const existingMechanic = await UserModel.findById(orderData.mechanic);
-    if (!existingMechanic) {
-        throw new AppError(httpStatus.NOT_FOUND, "Mechanic not found");
-    }
+  // 2. Validate mechanic exists
+  const existingMechanic = await UserModel.findById(orderData.mechanic);
+  if (!existingMechanic) {
+    throw new AppError(httpStatus.NOT_FOUND, "Mechanic not found");
+  }
 
-    // 3. Validate vehicle exists and belongs to the user
-    const existingVehicle = await Vehicle.findById(orderData.vehicle);
-    if (!existingVehicle) {
-        throw new AppError(httpStatus.NOT_FOUND, "Vehicle not found");
-    }
-    
+  // 3. Validate vehicle exists and belongs to the user
+  const existingVehicle = await Vehicle.findById(orderData.vehicle);
+  if (!existingVehicle) {
+    throw new AppError(httpStatus.NOT_FOUND, "Vehicle not found");
+  }
 
-    // 4. Validate services exist
-    const existingServices = await Service.find({ _id: { $in: orderData.services } });
-    if (existingServices.length !== orderData.services.length) {
-        throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
-    }
 
-    // 5. Check if mechanic provides all requested services
-    const mechanicServices = await MechanicServiceRateModel.find({ 
-        mechanic: orderData.mechanic,
-        "services.service": { $in: orderData.services } 
-    });
+  // 4. Validate services exist
+  const existingServices = await Service.find({ _id: { $in: orderData.services } });
+  if (existingServices.length !== orderData.services.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Some services not found");
+  }
 
-    if (mechanicServices.length === 0) {
-        throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide any of these services");
-    }
+  // 5. Check if mechanic provides all requested services
+  const mechanicServices = await MechanicServiceRateModel.find({
+    mechanic: orderData.mechanic,
+    "services.service": { $in: orderData.services }
+  });
 
-    // Extract all service IDs that the mechanic actually provides
-  const availableServiceIds = mechanicServices.flatMap(doc => 
+  if (mechanicServices.length === 0) {
+    throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide any of these services");
+  }
+
+  // Extract all service IDs that the mechanic actually provides
+  const availableServiceIds = mechanicServices.flatMap(doc =>
     doc.services
-        .filter(serviceObj => orderData.services.some(id => id.toString() === serviceObj.service.toString()))
-        .map(serviceObj => serviceObj.service.toString())
-);
+      .filter(serviceObj => orderData.services.some((id :string) => id.toString() === serviceObj.service.toString()))
+      .map(serviceObj => serviceObj.service.toString())
+  );
 
-    // Check if all requested services are available
-    const uniqueAvailableServices = [...new Set(availableServiceIds)];
-    const allServicesAvailable = orderData.services.every(serviceId => 
-        uniqueAvailableServices.includes(serviceId.toString())
-    );
+  // Check if all requested services are available
+  const uniqueAvailableServices = [...new Set(availableServiceIds)];
+  const allServicesAvailable = orderData.services.every((serviceId: string) =>
+    uniqueAvailableServices.includes(serviceId.toString())
+  );
 
-    if (!allServicesAvailable) {
-        throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide all requested services");
-    }
+  if (!allServicesAvailable) {
+    throw new AppError(httpStatus.NOT_FOUND, "Mechanic does not provide all requested services");
+  }
 
-    // 6. Calculate total price for the services
-    const orderTotal = await MechanicServiceRateModel.aggregate([
+  // 6. Calculate total price for the services
+  const orderTotal = await MechanicServiceRateModel.aggregate([
     // Match documents for this specific mechanic
-    { 
-        $match: {
-            mechanic: new mongoose.Types.ObjectId(orderData.mechanic.toString())
-        }
+    {
+      $match: {
+        mechanic: new mongoose.Types.ObjectId(orderData.mechanic.toString())
+      }
     },
-    
+
     // Unwind the services array
     { $unwind: "$services" },
-    
+
     // Match only the specific services we want
-    { 
-        $match: { 
-            "services.service": { 
-                $in: orderData.services.map(id => new mongoose.Types.ObjectId(id.toString()))
-            } 
-        } 
-    },
-    
-    // Group and sum the prices
-    { 
-        $group: { 
-            _id: null, 
-            total: { $sum: "$services.price" } 
-        } 
-    }
-]);
-
-    if (orderTotal.length === 0) {
-        throw new AppError(httpStatus.NOT_FOUND, "No pricing found for the requested services");
-    }
-
-    let total = orderTotal[0].total;
-
-    // 7. Apply commission/service charges
-    const appService = await Commission.findOne({ applicable: "user" });
-    if (appService) {
-        if (appService.type === "number") {
-            total += appService.amount;
-        } else if (appService.type === "percentage") {
-            total += (total * appService.amount) / 100;
+    {
+      $match: {
+        "services.service": {
+          $in: orderData.services.map((id: string) => new mongoose.Types.ObjectId(id.toString()))
         }
+      }
+    },
+
+    // Group and sum the prices
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$services.price" }
+      }
     }
+  ]);
 
-    // 8. Validate minimum order amount if needed
-    if (total <= 0) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Invalid order total");
+  if (orderTotal.length === 0) {
+    throw new AppError(httpStatus.NOT_FOUND, "No pricing found for the requested services");
+  }
+
+  let total = orderTotal[0].total;
+
+  // 7. Apply commission/service charges
+  const appService = await Commission.findOne({ applicable: "user" });
+  if (appService) {
+    if (appService.type === "number") {
+      total += appService.amount;
+    } else if (appService.type === "percentage") {
+      total += (total * appService.amount) / 100;
     }
+  }
 
-    // 9. Create the order
-    const finalOrderData = {
-        ...orderData,
-        user: userId,
-        total: Math.round(total * 100) / 100, // Round to 2 decimal places
-        status: "pending",
-        createdAt: new Date(),
-        updatedAt: new Date()
-    };
+  // 8. Validate minimum order amount if needed
+  if (total <= 0) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid order total");
+  }
+let locationData = {
+    type: "Point",
+    coordinates: [0, 0] // default coordinates
+  };
 
-    // 10. Create order in a transaction (optional but recommended)
-    const session = await mongoose.startSession();
-    let order;
-    
-    try {
-        session.startTransaction();
-        
-        order = await Order.create([finalOrderData], { session });
-        
-        // You might want to update mechanic's order count or other related operations here
-        // await Mechanic.findByIdAndUpdate(orderData.mechanic, { $inc: { totalOrders: 1 } }, { session });
-        
-        await session.commitTransaction();
-    } catch (error) {
-        await session.abortTransaction();
-        throw error;
-    } finally {
-        session.endSession();
-    }
+  // Check if coordinates are provided in the request
+  if (orderData.coordinates && Array.isArray(orderData.coordinates) && orderData.coordinates.length === 2) {
+    locationData.coordinates = orderData.coordinates;
+  } else if (orderData.location && orderData.location.coordinates && Array.isArray(orderData.location.coordinates)) {
+    locationData.coordinates = orderData.location.coordinates;
+  } else {
+    throw new AppError(httpStatus.BAD_REQUEST, "Valid coordinates are required [longitude, latitude]");
+  }
 
-    return order[0];
+  // Validate coordinates are numbers
+  if (!locationData.coordinates.every(coord => typeof coord === 'number' && !isNaN(coord))) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Coordinates must be valid numbers");
+  }
+  // 9. Create the order
+  const finalOrderData = {
+    ...orderData,
+    location: locationData,
+    user: userId,
+    total: Math.round(total * 100) / 100, // Round to 2 decimal places
+    status: "processing",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  // 10. Create order in a transaction (optional but recommended)
+  const session = await mongoose.startSession();
+  let order;
+
+  try {
+    session.startTransaction();
+
+    order = await Order.create([finalOrderData], { session });
+
+    // You might want to update mechanic's order count or other related operations here
+    // await Mechanic.findByIdAndUpdate(orderData.mechanic, { $inc: { totalOrders: 1 } }, { session });
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+
+  return order[0];
 };
 export const getOrdersFromDB = async ({
+  currentPage,
+  limit,
+}: {
+  currentPage: number;
+  limit: number;
+}) => {
+  const totalData = await Order.countDocuments();
+
+  // Use paginationBuilder to get pagination details
+  const paginationInfo = paginationBuilder({
+    totalData,
     currentPage,
     limit,
-}: {
-    currentPage: number;
-    limit: number;
-}) => {
-    const totalData = await Order.countDocuments();
-
-    // Use paginationBuilder to get pagination details
-    const paginationInfo = paginationBuilder({
-        totalData,
-        currentPage,
-        limit,
-    });
-    const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit);;
-    return { paginationInfo, data: orders };
+  });
+  const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit);;
+  return { paginationInfo, data: orders };
 }
 export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
-    if (userData.role === 'user') {
-        const result = await Order.findOne({ user: userData.id }).populate({path:'mechanic',select:"name image email"}).populate('vehicle').populate({path:'user',select:"name image email phone"})
-        .populate({
+  if (userData.role === 'user') {
+    const result = await Order.findOne({ user: userData.id }).populate({ path: 'mechanic', select: "name image email" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" })
+      .populate({
         path: 'services',
         model: 'Service', // Explicitly specify model if needed
         select: 'name' // Select fields you want
-    });
-        return result;
+      });
+    const appService = await Commission.findOne({ applicable: 'user' });
+    if (!appService) {
+      throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
     }
-    const result = await Order.findById(orderId).populate({path:'mechanic',select:"name image email phone"}).populate('vehicle').populate({path:'user',select:"name image email phone"});
-    return result;
+    return { result, ...appService };
+  }
+  const result = await Order.findById(orderId).populate({ path: 'mechanic', select: "name image email phone" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" });
+  return result;
 
 }
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
-    const userId = userData?.id;  // The logged-in user's ID
-    let pendingCount, processingCount, completedCount
+  const userId = userData?.id;  // The logged-in user's ID
+  let cancelledCount, processingCount, completedCount
 
-    // If the user is an admin, they can fetch orders for any mechanic
-    if (userData.role === 'admin') {
-        const order = await Order.find({ status });
-        pendingCount = await Order.countDocuments({ status: 'pending' });
-        processingCount = await Order.countDocuments({ status: 'processing' });
-        completedCount = await Order.countDocuments({ status: 'completed' });
-        return { order, pendingCount, processingCount, completedCount };
-    }
+  // If the user is an admin, they can fetch orders for any mechanic
+  if (userData.role === 'admin') {
+    const order = await Order.find({ status }).select("-vehicle -services -location -user");
+    processingCount = await Order.countDocuments({ status: 'processing' });
+    completedCount = await Order.countDocuments({ status: 'completed' });
+    cancelledCount = await Order.countDocuments({ status: 'cancelled' });
+    return { order,  processingCount, completedCount, cancelledCount };
+  }
 
-    // If the user is a mechanic, they can only fetch their own orders
-    if (userData.role === 'mechanic') {
-        const order = await Order.find({ status, mechanic: userId });
-        pendingCount = await Order.countDocuments({ status: 'pending' });
-        processingCount = await Order.countDocuments({ status: 'processing' });
-        completedCount = await Order.countDocuments({ status: 'completed' });
-        return { order, pendingCount, processingCount, completedCount };
-    }
+  // If the user is a mechanic, they can only fetch their own orders
+  if (userData.role === 'mechanic') {
+    const order = await Order.find({ status, mechanic: userId }).select("-vehicle -services -location -user");
+    processingCount = await Order.countDocuments({ status: 'processing' });
+    completedCount = await Order.countDocuments({ status: 'completed' });
+    cancelledCount = await Order.countDocuments({ status: 'cancelled' });
+    return { order,  processingCount, completedCount, cancelledCount };
+  }
 
 
 }
 export const getOrdersByMechanicFromDB = async (mechanicid: string, userData: Partial<IUser>) => {
-    const userId = userData?.id;  // The logged-in user's ID
+  const userId = userData?.id;  // The logged-in user's ID
 
-    let query = {};
+  let query = {};
 
-    // If the user is an admin, they can fetch orders for any mechanic
-    if (userData.role === 'admin') {
-        query = { mechanic: mechanicid };  // Admin can access orders for any mechanic
-    }
+  // If the user is an admin, they can fetch orders for any mechanic
+  if (userData.role === 'admin') {
+    query = { mechanic: mechanicid };  // Admin can access orders for any mechanic
+  }
 
-    // If the user is a mechanic, they can only fetch their own orders
-    if (userData.role === 'mechanic') {
-        query = { mechanic: userId };
-    }
+  // If the user is a mechanic, they can only fetch their own orders
+  if (userData.role === 'mechanic') {
+    query = { mechanic: userId };
+  }
 
-    // Fetch orders based on the query
-    const orders = await Order.find(query);
-    return orders;
+  // Fetch orders based on the query
+  const orders = await Order.find(query);
+  return orders;
 }
 export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) => {
-    const order = await Order.findById(orderId);
-    if (!order) {
-        throw new Error("Order not found");
-    }
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new Error("Order not found");
+  }
 
-    const fiveDigitOTPToConfirmOrder = Math.floor(10000 + Math.random() * 90000).toString();
-    await NotificationModel.create({
-        userId: order.user,
-        userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order ${orderId}`,
-        adminMsg: ""
-    });
+  const fiveDigitOTPToConfirmOrder = Math.floor(10000 + Math.random() * 90000).toString();
+  await NotificationModel.create({
+    userId: order.user,
+    userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order ${orderId}`,
+    adminMsg: ""
+  });
 
-    const mechanicWallet = await Wallet.findOne({ user: order.mechanic });
-    if (!mechanicWallet) {
-        await Wallet.create({ user: order.mechanic });
-    }
+  const mechanicWallet = await Wallet.findOne({ user: order.mechanic });
+  if (!mechanicWallet) {
+    await Wallet.create({ user: order.mechanic });
+  }
 
-    // emitNotification({
-    //     userId: order.user,
-    //     userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order`,
-    //     adminMsg: ""
-    // })
-    // Update the wallet with the calculated earning
-    // const updatedWallet = await Wallet.findOneAndUpdate(
-    //     { user: mechanicId },
-    //     {
-    //         $inc: {
-    //             totalEarnings: earning,
-    //             availableBalance: earning
-    //         }
-    //     },
-    //     { new: true }
-    // );
+  // emitNotification({
+  //     userId: order.user,
+  //     userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order`,
+  //     adminMsg: ""
+  // })
+  // Update the wallet with the calculated earning
+  // const updatedWallet = await Wallet.findOneAndUpdate(
+  //     { user: mechanicId },
+  //     {
+  //         $inc: {
+  //             totalEarnings: earning,
+  //             availableBalance: earning
+  //         }
+  //     },
+  //     { new: true }
+  // );
 
-    // // Check if the wallet was updated successfully
-    // if (!updatedWallet) {
-    //     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update wallet");
-    // }
+  // // Check if the wallet was updated successfully
+  // if (!updatedWallet) {
+  //     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update wallet");
+  // }
 
-    // Return the updated wallet
-    return fiveDigitOTPToConfirmOrder;
+  // Return the updated wallet
+  return fiveDigitOTPToConfirmOrder;
 };
 
 export const verifyOrderCompletionFromUserEndIntoDB = async (
@@ -347,8 +369,8 @@ export const verifyOrderCompletionFromUserEndIntoDB = async (
   );
 
   // Update mechanic wallet balance
-//   mechanicWallet.totalBalance += mechanicEarning;
-//   await mechanicWallet.save();
+  //   mechanicWallet.totalBalance += mechanicEarning;
+  //   await mechanicWallet.save();
 
   // Mark order as completed
   order.status = 'completed';
@@ -361,6 +383,27 @@ export const verifyOrderCompletionFromUserEndIntoDB = async (
     notification: orderVerificationCodeMatch,
   };
 };
+
+export const cancelOrderFromDB  = async(orderId: string, userId: string) => {
+ const user = await UserModel.findById(userId);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const order = await Order.findOne({ _id: orderId, user: userId });
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found or does not belong to this user");
+  }
+  if (order.status === "completed") {
+    throw new AppError(httpStatus.BAD_REQUEST, "Cannot cancel a completed order");
+  }
+  if (order.status === "cancelled") {
+    throw new AppError(httpStatus.BAD_REQUEST, "Order is already cancelled");
+  }
+  order.status = "cancelled";
+  await order.save();
+  return order;
+}
 
 // export const verifyOrderCompletionFromUserEndIntoDB = async (orderId: string, userId: string, code: string) => {
 //     const order = await Order.findOne({ _id: orderId });

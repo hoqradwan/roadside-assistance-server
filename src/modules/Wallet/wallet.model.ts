@@ -3,9 +3,7 @@ import { Schema, model, Document } from 'mongoose';
 interface IWallet extends Document {
     totalEarnings: number;
     availableBalance: number;
-    numberOfWithdrawRequests: number;
-    totalPaidAmount: number;
-    totalWithdraw: number;
+    withdrawnAmount: number;
 }
 
 const WalletSchema: Schema = new Schema({

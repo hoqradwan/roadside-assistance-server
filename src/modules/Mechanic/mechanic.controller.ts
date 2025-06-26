@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
 import Mechanic from "./mechanic.model";
-import { createMechanicIntoDB,  getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
+import { createMechanicIntoDB,  getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicAdminFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
 
 export const makeMechanic = catchAsync(async (req, res) => {
     const { email } = req.body;
@@ -57,7 +57,7 @@ export const getMechanicWithServicePrice = catchAsync(async (req : CustomRequest
     });
 });
 export const getSingleMechanic = catchAsync(async (req : CustomRequest, res) => {
-    const mechanicId = req.params.id; // Use the ID from the request params or the user ID if not provided
+    const mechanicId = req.params.userId; // Use the ID from the request params or the user ID if not provided
     // Call the service function to get the mechanics with pagination
     const result = await getSingleMechanicFromDB(mechanicId);
     // Send the response to the client
@@ -65,6 +65,18 @@ export const getSingleMechanic = catchAsync(async (req : CustomRequest, res) => 
         statusCode: 200,
         success: true,
         message: 'Mechanic retrieved successfully',
+        data: result,
+    });
+});
+export const getSingleMechanicAdmin = catchAsync(async (req : CustomRequest, res) => {
+    const mechanicId = req.params.userId; // Use the ID from the request params or the user ID if not provided
+    // Call the service function to get the mechanics with pagination
+    const result = await getSingleMechanicAdminFromDB(mechanicId);
+    // Send the response to the client
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Mechanic retrieved successfully for admin panel',
         data: result,
     });
 });

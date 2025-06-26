@@ -302,6 +302,67 @@ export const getSingleMechanicFromDB = async (mechanicId: string) => {
     serviceWithRate,
   };
 };
+export const getSingleMechanicAdminFromDB = async (mechanicId: string) => {
+  // Fetch the mechanic from the User model
+  const mechanic = await UserModel.findById(mechanicId).select("-password -__v -location -createdAt -status -updatedAt -cuponCode -expiryDate -isDeleted -isActive -uniqueUserId -activeDate");
+  if (!mechanic) throw new Error("Mechanic not found");
+
+  // Fetch the mechanic details from the Mechanic model
+  const mechanicDetails = await Mechanic.findOne({ user: mechanicId }).select("-__v -createdAt -updatedAt -serviceCount -services -uniqueMechanicId");
+  if (!mechanicDetails) {
+    throw new Error("Mechanic details not found");
+  }
+  // Count the number of services offered by the mechanic
+  const totalServicesCount = await MechanicServiceRateModel.aggregate([
+    { $match: { mechanic: mechanicDetails.user } },
+    { $project: { serviceCount: { $size: "$services" } } }
+  ]);
+  const serviceCount = totalServicesCount[0]?.serviceCount || 0;
+  const totalCompletedOrders = await Order.find({mechanic : mechanicDetails.user, status: "completed"}).countDocuments();
+  // Calculate the total sales (sum of totalPrice for completed orders)
+  const totalSalesAgg = await Order.aggregate([
+    {
+      $match: {
+        mechanic: mechanicDetails.user,
+        status: "completed"
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalSales: { $sum: "$total" }
+      }
+    }
+  ]);
+  const totalSales = totalSalesAgg[0]?.totalSales || 0;
+  const mechanicWallet = await Wallet.findOne({user: mechanicId});
+  // Fetch the services and rate
+
+  // Merge the mechanic and mechanicDetails objects under one object
+  const mergedMechanicData = {
+    _id: mechanic._id,
+    name: mechanic.name,
+    email: mechanic.email,
+    image: mechanic.image,
+    role: mechanic.role,
+    // Merge mechanicDetails data into this object
+    rating: mechanicDetails.rating,
+    experience: mechanicDetails.experience,
+    description: mechanicDetails.description,
+    isAvailable: mechanicDetails.isAvailable
+  };
+
+  // Return the merged data with the separate serviceWithRate
+  return {
+    mechanic: mergedMechanicData,
+    totalServices : serviceCount,
+    totalCompletedOrders,
+    totalSales,
+    availableBalance : mechanicWallet?.availableBalance,
+    totalWithdraw  : mechanicWallet?.withdrawnAmount
+
+  };
+};
 
 /* {
   "car": "68514fa3b34a40f5e30d68a1",
@@ -314,6 +375,7 @@ export const getSingleMechanicFromDB = async (mechanicId: string) => {
 }
  */
 import mongoose from "mongoose";
+import Wallet from "../Wallet/wallet.model";
 // export const getAllTestMechanicsFromDB = async ({
 //   currentPage,
 //   limit,

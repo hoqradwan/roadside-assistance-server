@@ -1,5 +1,5 @@
 import express from 'express';
-import { makeMechanic,createMechanic,getAllMechanics,getMechanicById,updateMechanic,deleteMechanic, toggleAvailability, getSortedMechanics, getSingleMechanic, getAllTestMechanics, getMechanicWithServicePrice } from './mechanic.controller';
+import { makeMechanic,createMechanic,getAllMechanics,getMechanicById,updateMechanic,deleteMechanic, toggleAvailability, getSortedMechanics, getSingleMechanic, getAllTestMechanics, getMechanicWithServicePrice, getSingleMechanicAdmin } from './mechanic.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = express.Router();
@@ -10,7 +10,8 @@ router.get('/all', adminMiddleware("admin","user"), getAllTestMechanics);
 // router.get('/all',adminMiddleware("admin","user"),  getAllMechanics);
 // router.get('/sorted',adminMiddleware("admin","user"), getSortedMechanicsWithSearch);
 router.get('/services/:id', adminMiddleware("admin","user","mechanic"), getMechanicWithServicePrice);
-router.get('/:id', adminMiddleware("admin","user","mechanic"), getSingleMechanic);
+router.get('/:userId', adminMiddleware("admin","user","mechanic"), getSingleMechanic);
+router.get('/admin/:userId', adminMiddleware("admin","user","mechanic"), getSingleMechanicAdmin);
 // router.get('/:id', adminMiddleware("admin","user"), getMechanicById);
 router.post('/:id',adminMiddleware("admin","mechanic"), updateMechanic);
 router.post('/toggle-availability/:id',adminMiddleware("admin","mechanic"), toggleAvailability);

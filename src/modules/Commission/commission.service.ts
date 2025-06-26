@@ -29,6 +29,9 @@ export const updateCommissionIntoDB = async (commissionData : Partial<ICommissio
     if(commissionData.applicable){
         throw new AppError(httpStatus.BAD_REQUEST, "Applicable cannot be updated");
     }
+    if(commissionData.type){
+        throw new AppError(httpStatus.BAD_REQUEST, "Commission type cannot be updated");
+    }
     Object.assign(commission, commissionData);
     await commission.save();
     return commission;

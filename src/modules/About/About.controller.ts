@@ -14,6 +14,7 @@ import {
   getAllAboutFromDB,
   updateAboutInDB,
 } from "./About.service";
+import { AboutModel } from "./About.model";
 
 const sanitizeOptions = {
   allowedTags: [
@@ -71,7 +72,12 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
       message: "Only admins can create terms.",
     });
   }
-
+  const aboutExists = await AboutModel.countDocuments();
+  if (aboutExists > 0) {
+    return sendError(res, httpStatus.BAD_REQUEST, {
+      message: "About already exists. You can only create it.",
+    });
+  }
   const { description } = req.body;
   const sanitizedContent = sanitizeHtml(description, sanitizeOptions);
   if (!description) {

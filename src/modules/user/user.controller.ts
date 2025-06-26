@@ -13,6 +13,7 @@ import {
   generateOTP,
   generateToken,
   getDistanceAndETA,
+  getMechanicList,
   getStoredOTP,
   getUserList,
   getUserRegistrationDetails,
@@ -40,6 +41,7 @@ import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicService
 import Service from "../Service/service.model";
 import Mechanic from "../Mechanic/mechanic.model";
 import { NotificationModel } from "../notifications/notification.model";
+import { isValidObjectId } from "mongoose";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -619,7 +621,68 @@ export const getAllUsers = catchAsync(async (req: CustomRequest, res: Response) 
     },
   });
 });
+export const getAllMechanics = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id: adminId } = req.user;
 
+  // Pagination parameters
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const skip = (page - 1) * limit;
+
+  // Optional filters
+  const date = req.query.date as string;
+  const name = req.query.name as string;
+  const email = req.query.email as string;
+
+  // Get users with pagination
+  const { users, totalUsers, totalPages } = await getMechanicList(
+    adminId,
+    skip,
+    limit,
+    date,
+    name,
+    email,
+  );
+  // Pagination logic for prevPage and nextPage
+  const prevPage = page > 1 ? page - 1 : null;
+  const nextPage = page < totalPages ? page + 1 : null;
+
+  // Send response with pagination details
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User list retrieved successfully",
+    data: users,
+    pagination: {
+      totalPage: totalPages,
+      currentPage: page,
+      prevPage: prevPage ?? 1,
+      nextPage: nextPage ?? 1,
+      limit,
+      totalItem: totalUsers,
+    },
+  });
+});
+export const getSingleUser = catchAsync(async (req :CustomRequest, res : Response) => {
+  const { userId } = req.params;
+
+    // Validate userId
+    if (!isValidObjectId(userId)) {
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'Invalid user ID format',
+            data: null,
+        });
+    } 
+  const result = await UserModel.findById(userId).select("name email uniqueUserId createdAt role phone")
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User retrieved successfully",
+        data: result
+    })
+})
 export const BlockUser = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.body;
   const authHeader = req.headers.authorization;

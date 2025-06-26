@@ -20,6 +20,8 @@ import {
   getNearbyMechanics,
   getProfile,
   updateProfile,
+  getSingleUser,
+  getAllMechanics,
 } from "./user.controller";
 import upload from "../../middlewares/fileUploadNormal";
 import { adminMiddleware } from "../../middlewares/auth";
@@ -53,10 +55,11 @@ router.post(
 router.get("/my-profile", getSelfInfo);
 router.get("/profile",adminMiddleware("admin","user","mechanic"), getProfile);
 
+router.get("/details/:userId",adminMiddleware("admin"),getSingleUser);
 // router.get("/profile", adminMiddleware("admin","user","mechanic") getProfile);
 router.get("/all", adminMiddleware("admin"), getAllUsers);
+router.get("/mechanic/all", adminMiddleware("admin"), getAllMechanics);
 router.get("/:userId/:mechanicId", getUserToMechanicDistance);
-
 router.get("/nearby-mechanics", adminMiddleware("user","mechanic"), getNearbyMechanics);
 router.post("/block-user", adminMiddleware("admin"), BlockUser);
 router.post("/set-location", adminMiddleware("user","mechanic"), setUserLocation);

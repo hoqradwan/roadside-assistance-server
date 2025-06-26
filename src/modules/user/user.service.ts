@@ -65,17 +65,7 @@ export const getUserList = async (
     $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } },{role: { $ne: "mechanic" }}],
   };
 
-  if (date) {
-    // Parse the input date (DD-MM-YYYY)
-    const [day, month, year] = date.split("-").map(Number);
-
-    // Create a Date object representing the start of the day in UTC
-    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-    // Create a Date object representing the end of the day in UTC
-    const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-
-    query.createdAt = { $gte: startDate, $lte: endDate };
-  }
+ 
 
   if (name) {
     query.name = { $regex: name, $options: "i" };
@@ -86,6 +76,43 @@ export const getUserList = async (
   }
 
   const users = await UserModel.find(query)
+    .select("name email uniqueUserId createdAt role phone")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalUsers = await UserModel.countDocuments(query);
+  const totalPages = Math.ceil(totalUsers / limit);
+
+  return { users, totalUsers, totalPages };
+};
+export const getMechanicList = async (
+  adminId: string,
+  skip: number,
+  limit: number,
+  date?: string,
+  name?: string,
+  email?: string,
+): Promise<{ users: IUser[]; totalUsers: number; totalPages: number }> => {
+  //const query: any = { isDeleted: { $ne: true } }
+  //const query: any = { _id: { $ne: adminId } };
+
+  const query: any = {
+    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } },{role: { $ne: "user" }}],
+  };
+
+ 
+
+  if (name) {
+    query.name = { $regex: name, $options: "i" };
+  }
+
+  if (email) {
+    query.email = { $regex: email, $options: "i" };
+  }
+
+  const users = await UserModel.find(query)
+    .select("name email uniqueUserId createdAt role phone")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);

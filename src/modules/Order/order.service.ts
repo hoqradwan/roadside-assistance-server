@@ -55,7 +55,7 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
   // Extract all service IDs that the mechanic actually provides
   const availableServiceIds = mechanicServices.flatMap(doc =>
     doc.services
-      .filter(serviceObj => orderData.services.some((id :string) => id.toString() === serviceObj.service.toString()))
+      .filter(serviceObj => orderData.services.some((id: string) => id.toString() === serviceObj.service.toString()))
       .map(serviceObj => serviceObj.service.toString())
   );
 
@@ -119,7 +119,7 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
   if (total <= 0) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid order total");
   }
-let locationData = {
+  let locationData = {
     type: "Point",
     coordinates: [0, 0] // default coordinates
   };
@@ -185,27 +185,110 @@ export const getOrdersFromDB = async ({
     currentPage,
     limit,
   });
-  const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit);;
+  const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit).populate({ path: 'mechanic', select: "name image email" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" })
+    .populate({
+      path: 'services',
+      model: 'Service', // Explicitly specify model if needed
+      select: 'name' // Select fields you want
+    });
   return { paginationInfo, data: orders };
 }
+// export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
+//   let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
+//   if (!appService) {
+//     throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+//   }
+//   if (userData.role === 'user') {
+//     const result = await Order.findOne({ user: userData.id }).populate({ path: 'mechanic', select: "name image email" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" })
+//       .populate({
+//         path: 'services',
+//         model: 'Service', // Explicitly specify model if needed
+//         select: 'name' // Select fields you want
+//       });
+
+//     return { result, appService: appService.amount };
+//   }
+
+//   const result = await Order.findById(orderId)
+//   // .populate({ path: 'mechanic', select: "name image email" })
+//   // .populate('vehicle').populate({ path: 'user', select: "name image email phone" });
+//   const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: result?.mechanic })
+//   console.log(result), "mecha.....................",mechanicServiceRate;
+
+//   return { result, appService: appService.amount, mechanicServiceRate };
+
+// }
+
+// Full service to fetch the mechanic's service rates
 export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
-  if (userData.role === 'user') {
-    const result = await Order.findOne({ user: userData.id }).populate({ path: 'mechanic', select: "name image email" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" })
-      .populate({
-        path: 'services',
-        model: 'Service', // Explicitly specify model if needed
-        select: 'name' // Select fields you want
-      });
-    const appService = await Commission.findOne({ applicable: 'user' });
+  try {
+    let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
     if (!appService) {
       throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
     }
-    return { result, ...appService };
-  }
-  const result = await Order.findById(orderId).populate({ path: 'mechanic', select: "name image email phone" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" });
-  return result;
 
-}
+    if (userData.role === 'user') {
+      // When the user role is 'user', fetch order data for that user
+      const result = await Order.findOne({ user: userData.id })
+        .populate({ path: 'mechanic', select: "name image email" })
+        .populate('vehicle')
+        .populate({ path: 'user', select: "name image email phone" })
+        .populate({
+          path: 'services',
+          model: 'Service',
+          select: 'name',
+        });
+
+      return { result, appService: appService.amount };
+    }
+
+    // Fetching the order for a specific orderId for other roles
+    const result = await Order.findById(orderId)
+      .populate({ path: 'mechanic', select: "name image email" })
+      .populate('vehicle')
+      .populate({ path: 'user', select: "name image email phone" });
+
+    if (!result) {
+      throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    }
+
+    // Fetch mechanic's service rate
+    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: result.mechanic })
+      .populate('services.service', 'name') // Populating service field with name
+      .lean(); // Convert to plain object for easier manipulation
+
+    if (!mechanicServiceRate) {
+      throw new AppError(httpStatus.NOT_FOUND, "Mechanic service rates not found");
+    }
+
+    // Filter services to only include those that match the order's services
+    const filteredServices = mechanicServiceRate.services.filter(serviceRate => {
+      return result.services.some(orderServiceId => 
+        orderServiceId.toString() === serviceRate.service._id.toString()
+      );
+    });
+
+    // Create the filtered mechanicServiceRate object
+    const filteredMechanicServiceRate = {
+      _id: mechanicServiceRate._id,
+      mechanic: mechanicServiceRate.mechanic,
+      services: filteredServices,
+    };
+
+    console.log("Filtered Mechanic Service Rates:", filteredMechanicServiceRate);
+
+    // Return the order, app service amount, and filtered mechanic's service rates
+    return { 
+      result, 
+      appService: appService.amount, 
+      mechanicServiceRate: filteredMechanicServiceRate 
+    };
+  } catch (error) {
+    console.error("Error fetching order data:", error);
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "An error occurred while fetching the order data");
+  }
+};
+
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
   const userId = userData?.id;  // The logged-in user's ID
   let cancelledCount, processingCount, completedCount
@@ -216,7 +299,7 @@ export const getOrdersByStatusFromDB = async (status: string, userData: Partial<
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
     cancelledCount = await Order.countDocuments({ status: 'cancelled' });
-    return { order,  processingCount, completedCount, cancelledCount };
+    return { order, processingCount, completedCount, cancelledCount };
   }
 
   // If the user is a mechanic, they can only fetch their own orders
@@ -225,7 +308,7 @@ export const getOrdersByStatusFromDB = async (status: string, userData: Partial<
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
     cancelledCount = await Order.countDocuments({ status: 'cancelled' });
-    return { order,  processingCount, completedCount, cancelledCount };
+    return { order, processingCount, completedCount, cancelledCount };
   }
 
 
@@ -384,8 +467,8 @@ export const verifyOrderCompletionFromUserEndIntoDB = async (
   };
 };
 
-export const cancelOrderFromDB  = async(orderId: string, userId: string) => {
- const user = await UserModel.findById(userId);
+export const cancelOrderFromDB = async (orderId: string, userId: string) => {
+  const user = await UserModel.findById(userId);
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
@@ -404,6 +487,7 @@ export const cancelOrderFromDB  = async(orderId: string, userId: string) => {
   await order.save();
   return order;
 }
+
 
 // export const verifyOrderCompletionFromUserEndIntoDB = async (orderId: string, userId: string, code: string) => {
 //     const order = await Order.findOne({ _id: orderId });

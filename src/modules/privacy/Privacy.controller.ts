@@ -13,6 +13,7 @@ import catchAsync from "../../utils/catchAsync";
 import sanitizeHtml from "sanitize-html";
 import { JWT_SECRET_KEY } from "../../config";
 import { Request, Response } from "express";
+import { PrivacyModel } from "./Privacy.model";
 
 const sanitizeOptions = {
   allowedTags: [
@@ -70,7 +71,12 @@ export const createPrivacy = catchAsync(async (req: Request, res: Response) => {
       message: "Only admins can create terms.",
     });
   }
-
+ const privacyExists = await PrivacyModel.countDocuments();
+  if (privacyExists > 0) {
+    return sendError(res, httpStatus.BAD_REQUEST, {
+      message: "Privacy already exists. You can only create it.",
+    });
+  }
   const { description } = req.body;
   const sanitizedContent = sanitizeHtml(description, sanitizeOptions);
   if (!description) {

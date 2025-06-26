@@ -170,6 +170,84 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
 
   return order[0];
 };
+
+export const getOrdersByUserFromDB = async (userId: string) => {
+  try {
+    // Fetch all orders for the user and populate required fields
+    const userOrders = await Order.find({ user: userId })
+      .populate({ path: 'mechanic', select: "name image email" })
+      .populate('vehicle')
+      .populate({ path: 'user', select: "name image email phone" })
+      .populate({
+        path: 'services',
+        model: 'Service', // Explicitly specify model if needed
+        select: 'name' // Select fields you want
+      });
+
+    // Fetch service rates for each order
+    const serviceRates = await Promise.all(
+      userOrders.map(async (order) => {
+        // Fetch the mechanic's service rates based on the mechanic in the order
+        const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic });
+
+        if (!mechanicServiceRate) {
+          return { ...order.toObject(), serviceRates: [] }; // If no service rate found, return order with an empty array
+        }
+
+        // Map the services in the order to their respective rates
+        const servicesWithRates = order.services.map(service => {
+          const matchedServiceRate = mechanicServiceRate.services.find(serviceRate =>
+            serviceRate.service.toString() === service.toString()
+          );
+
+          // If a matching service rate is found, include the price in the result
+          if (matchedServiceRate) {
+            return {
+              serviceId: service,
+              price: matchedServiceRate.price,
+            };
+          }
+
+          return {
+            serviceId: service,
+            price: null, // If no price is found, return null
+          };
+        });
+
+        // Combine the order data with the service rates
+        return { ...order.toObject(), serviceRates: servicesWithRates };
+      })
+    );
+
+    return serviceRates;
+  } catch (error) {
+    console.error("Error fetching orders or service rates:", error);
+    throw new Error("An error occurred while fetching the order data.");
+  }
+};
+
+
+
+
+// export const getOrdersByUserFromDB = async (userId: string) => {
+//   const userOrders = await Order.find({ user: userId }).populate({ path: 'mechanic', select: "name image email" })
+//     .populate('vehicle').populate({ path: 'user', select: "name image email phone" })
+//     .populate({
+//       path: 'services',
+//       model: 'Service', // Explicitly specify model if needed
+//       select: 'name' // Select fields you want
+//     });
+//  const serviceRates = await Promise.all(
+//     userOrders.map(async (order) => {
+//       const serviceRateOfMechanic = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic });
+//         return {...order.toObject(),serviceRateOfMechanic};
+//     })
+//   )
+
+//   return serviceRates;
+
+// }
+
 export const getOrdersFromDB = async ({
   currentPage,
   limit,
@@ -185,7 +263,10 @@ export const getOrdersFromDB = async ({
     currentPage,
     limit,
   });
-  const orders = await Order.find({}).skip((currentPage - 1) * limit).limit(limit).populate({ path: 'mechanic', select: "name image email" }).populate('vehicle').populate({ path: 'user', select: "name image email phone" })
+  const orders = await Order.find({}).skip((currentPage - 1) * limit)
+    .limit(limit)
+    .populate({ path: 'mechanic', select: "name image email" })
+    .populate('vehicle').populate({ path: 'user', select: "name image email phone" })
     .populate({
       path: 'services',
       model: 'Service', // Explicitly specify model if needed
@@ -227,20 +308,20 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
       throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
     }
 
-    if (userData.role === 'user') {
-      // When the user role is 'user', fetch order data for that user
-      const result = await Order.findOne({ user: userData.id })
-        .populate({ path: 'mechanic', select: "name image email" })
-        .populate('vehicle')
-        .populate({ path: 'user', select: "name image email phone" })
-        .populate({
-          path: 'services',
-          model: 'Service',
-          select: 'name',
-        });
+    // if (userData.role === 'user') {
+    //   // When the user role is 'user', fetch order data for that user
+    //   const result = await Order.findOne({ user: userData.id })
+    //     .populate({ path: 'mechanic', select: "name image email" })
+    //     .populate('vehicle')
+    //     .populate({ path: 'user', select: "name image email phone" })
+    //     .populate({
+    //       path: 'services',
+    //       model: 'Service',
+    //       select: 'name',
+    //     });
 
-      return { result, appService: appService.amount };
-    }
+    //   return { result, appService: appService.amount };
+    // }
 
     // Fetching the order for a specific orderId for other roles
     const result = await Order.findById(orderId)
@@ -263,7 +344,7 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
 
     // Filter services to only include those that match the order's services
     const filteredServices = mechanicServiceRate.services.filter(serviceRate => {
-      return result.services.some(orderServiceId => 
+      return result.services.some(orderServiceId =>
         orderServiceId.toString() === serviceRate.service._id.toString()
       );
     });
@@ -278,10 +359,10 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
     console.log("Filtered Mechanic Service Rates:", filteredMechanicServiceRate);
 
     // Return the order, app service amount, and filtered mechanic's service rates
-    return { 
-      result, 
-      appService: appService.amount, 
-      mechanicServiceRate: filteredMechanicServiceRate 
+    return {
+      result,
+      appService: appService.amount,
+      mechanicServiceRate: filteredMechanicServiceRate
     };
   } catch (error) {
     console.error("Error fetching order data:", error);

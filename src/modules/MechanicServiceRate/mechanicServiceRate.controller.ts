@@ -71,6 +71,7 @@ export const getMechanicServiceRate = catchAsync(async (req: CustomRequest, res:
     let formattedServices = mechanicServiceRate.services.map((service: any) => {
         return {
             service: service.service.name,
+            image : service.service.image,
             price: service.price,
         };
     }

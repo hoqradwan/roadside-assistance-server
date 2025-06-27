@@ -142,6 +142,18 @@ export const deleteMechanic = catchAsync(async (req, res) => {
         data: result
     })
 })
+export const getAvailability = catchAsync(async (req : CustomRequest, res) => {
+    const {id:userId} = req.user;
+    const result = await Mechanic.findOne({user: userId});
+    if (!result) throw new Error("Mechanic not found");
+    const availability = result.isAvailable;
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Mechanic availability retrieved successfully",
+        data: availability
+    })
+})
 export const getAllTestMechanics = catchAsync(async (req: CustomRequest, res) => {
     const { currentPage = 1, limit = 10, serviceName } = req.query;
     const { id: userId } = req.user;

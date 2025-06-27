@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Mechanic from "../Mechanic/mechanic.model";
 import Service, { IService } from "./service.model";
+import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 
 export const createServiceIntoDB = async (service: any, image: any) => {
    
@@ -18,14 +19,21 @@ export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceId: 
     if (!mechanic) {
         throw new Error("Mechanic not found");
     }
-
-    if (mechanic.services.includes(new mongoose.Types.ObjectId(serviceId))) {
+    // Check if the service is already added to the mechanic
+    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicId });
+    if (!mechanicServiceRate) {
+        throw new Error("Mechanic service rate not found");
+    }
+    const serviceAlreadyExists = mechanicServiceRate.services.some(
+        (s: any) => s.service.toString() === serviceId
+    );
+    if (serviceAlreadyExists) {
         throw new Error("Service already added to the mechanic");
     }
-
-    const addedMechanicService = await Mechanic.findOneAndUpdate(
-        { user: mechanicId },
-        { $push: { services: serviceId } },
+       
+    const addedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
+        { mechanic: mechanicId },
+        { $push: { services: { service: serviceId } } },
         { new: true } // Return the updated document
     );
 
@@ -38,10 +46,10 @@ export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceId: 
 };
 export const deleteServiceByMechanicFromDB = async (mechanicId: string, serviceId: string) => {
     // Remove the serviceId from the services array of the specified mechanic
-    const mechanicService = await Mechanic.findOneAndUpdate(
-        { user: mechanicId },
-        { $pull: { services: serviceId } },
-        { new: true } // Return the updated document
+    const mechanicService = await MechanicServiceRateModel.findOneAndUpdate(
+        { mechanic: mechanicId },
+        { $pull: { services: { service: serviceId } } },
+        { new: true }
     );
 
     if (!mechanicService) {

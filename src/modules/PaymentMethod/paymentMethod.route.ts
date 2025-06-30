@@ -3,7 +3,7 @@ import { createPaymentMethod, getAllPaymentMethods } from './paymentMethod.contr
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
-router.post("/create", adminMiddleware("admin","mechanic"), createPaymentMethod)
+router.post("/create", adminMiddleware("mechanic"), createPaymentMethod)
 router.get("/", adminMiddleware("mechanic"), getAllPaymentMethods)
 
 export const PaymentMethodRoutes = router;

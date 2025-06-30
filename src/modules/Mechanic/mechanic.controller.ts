@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
 import Mechanic from "./mechanic.model";
-import { createMechanicIntoDB,  getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicAdminFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
+import { createMechanicIntoDB, getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicAdminFromDB, getSingleMechanicFromDB, makeMechanicIntoDB,  setServiceRadiusIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
 
 export const makeMechanic = catchAsync(async (req, res) => {
     const { email } = req.body;
@@ -12,6 +12,18 @@ export const makeMechanic = catchAsync(async (req, res) => {
         statusCode: 200,
         success: true,
         message: "Mechanic made successfully",
+        data: result
+    })
+})
+export const setServiceRadius = catchAsync(async (req : CustomRequest, res: Response) => {
+    const {id : mechanicId} = req.user
+    const mechanicServiceAreaWithLocationData = req.body;
+    const result = await setServiceRadiusIntoDB(mechanicId, mechanicServiceAreaWithLocationData);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Mechanic service area set successfully",
         data: result
     })
 })
@@ -25,9 +37,9 @@ export const createMechanic = catchAsync(async (req, res) => {
     })
 })
 
-export const getAllMechanics = catchAsync(async (req : CustomRequest, res) => {
+export const getAllMechanics = catchAsync(async (req: CustomRequest, res) => {
     const { currentPage = 1, limit = 10 } = req.query;
-    const {id : userId} = req.user;
+    const { id: userId } = req.user;
     // Call the service function to get the mechanics with pagination
     const result = await getAllMechanicsFromDB({
         currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number
@@ -44,7 +56,7 @@ export const getAllMechanics = catchAsync(async (req : CustomRequest, res) => {
     });
 });
 
-export const getMechanicWithServicePrice = catchAsync(async (req : CustomRequest, res) => {
+export const getMechanicWithServicePrice = catchAsync(async (req: CustomRequest, res) => {
     const mechanicId = req.params.id; // Use the ID from the request params or the user ID if not provided
     // Call the service function to get the mechanics with pagination
     const result = await getMechanicWithServicePriceFromDB(mechanicId);
@@ -56,7 +68,7 @@ export const getMechanicWithServicePrice = catchAsync(async (req : CustomRequest
         data: result,
     });
 });
-export const getSingleMechanic = catchAsync(async (req : CustomRequest, res) => {
+export const getSingleMechanic = catchAsync(async (req: CustomRequest, res) => {
     const mechanicId = req.params.userId; // Use the ID from the request params or the user ID if not provided
     // Call the service function to get the mechanics with pagination
     const result = await getSingleMechanicFromDB(mechanicId);
@@ -68,7 +80,7 @@ export const getSingleMechanic = catchAsync(async (req : CustomRequest, res) => 
         data: result,
     });
 });
-export const getSingleMechanicAdmin = catchAsync(async (req : CustomRequest, res) => {
+export const getSingleMechanicAdmin = catchAsync(async (req: CustomRequest, res) => {
     const mechanicId = req.params.userId; // Use the ID from the request params or the user ID if not provided
     // Call the service function to get the mechanics with pagination
     const result = await getSingleMechanicAdminFromDB(mechanicId);
@@ -142,9 +154,9 @@ export const deleteMechanic = catchAsync(async (req, res) => {
         data: result
     })
 })
-export const getAvailability = catchAsync(async (req : CustomRequest, res) => {
-    const {id:userId} = req.user;
-    const result = await Mechanic.findOne({user: userId});
+export const getAvailability = catchAsync(async (req: CustomRequest, res) => {
+    const { id: userId } = req.user;
+    const result = await Mechanic.findOne({ user: userId });
     if (!result) throw new Error("Mechanic not found");
     const availability = result.isAvailable;
     sendResponse(res, {
@@ -157,13 +169,13 @@ export const getAvailability = catchAsync(async (req : CustomRequest, res) => {
 export const getAllTestMechanics = catchAsync(async (req: CustomRequest, res) => {
     const { currentPage = 1, limit = 10, serviceName } = req.query;
     const { id: userId } = req.user;
-    
+
     // Properly handle serviceName - convert empty strings and "undefined" to undefined
     let cleanedServiceName: string | undefined = serviceName as string;
-    
-    if (!cleanedServiceName || 
-        cleanedServiceName === '' || 
-        cleanedServiceName === '""' || 
+
+    if (!cleanedServiceName ||
+        cleanedServiceName === '' ||
+        cleanedServiceName === '""' ||
         cleanedServiceName === "''" ||
         cleanedServiceName === 'undefined' ||
         cleanedServiceName === 'null') {

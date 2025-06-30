@@ -432,8 +432,8 @@ export const emitNotification = async ({
   adminMsg,
 }: {
   userId: ObjectId;
-  userMsg: string;
-  adminMsg: string;
+  userMsg?: string;
+  adminMsg?: string;
 }): Promise<void> => {
   if (!io) {
     throw new Error("Socket.IO is not initialized");

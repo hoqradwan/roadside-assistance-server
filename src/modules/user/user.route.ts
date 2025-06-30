@@ -63,7 +63,6 @@ router.get("/:userId/:mechanicId", getUserToMechanicDistance);
 router.get("/nearby-mechanics", adminMiddleware("user","mechanic"), getNearbyMechanics);
 router.post("/block-user", adminMiddleware("admin"), BlockUser);
 router.post("/set-location", adminMiddleware("user","mechanic"), setUserLocation);
-
 router.post("/delete", adminMiddleware("admin"), deleteUser);
 
 export const UserRoutes = router;

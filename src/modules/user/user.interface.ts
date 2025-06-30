@@ -23,6 +23,7 @@ export type IUser = {
   about: string;
   bio: string;
   cuponCode: string;
+  serviceRadius : number;
   location :{
     
     type : string;

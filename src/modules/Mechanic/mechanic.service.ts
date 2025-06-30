@@ -6,12 +6,24 @@ import Order from "../Order/order.model";
 import Service from "../Service/service.model";
 import { UserModel } from "../user/user.model";
 import Mechanic, { IMechanic } from "./mechanic.model";
-import { ObjectId } from "mongoose";
+
 export const makeMechanicIntoDB = async (email: string) => {
   const user = await UserModel.findOne({ email });
   if (!user) throw new Error("User not found");
   const result = await UserModel.findOneAndUpdate({ email }, { role: "mechanic" }, { new: true });
   return result;
+}
+export const setServiceRadiusIntoDB = async(mechanicId : string , mechanicServiceAreaWithLocationData: any) =>{
+        const { latitude, longitude, serviceRadius } = mechanicServiceAreaWithLocationData;
+    const user = await UserModel.findById(mechanicId);
+    if(!user){
+      throw new Error("Mechanic not found");
+    }
+      user.location.coordinates = [longitude, latitude];
+      user.serviceRadius = serviceRadius; // Save the service area radius
+    await user.save();
+    return user;
+    
 }
 
 export const createMechanicIntoDB = async (mechanic: IMechanic) => {
@@ -376,6 +388,7 @@ export const getSingleMechanicAdminFromDB = async (mechanicId: string) => {
  */
 import mongoose from "mongoose";
 import Wallet from "../Wallet/wallet.model";
+import { error } from "winston";
 // export const getAllTestMechanicsFromDB = async ({
 //   currentPage,
 //   limit,

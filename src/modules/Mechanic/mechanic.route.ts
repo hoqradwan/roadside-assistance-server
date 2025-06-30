@@ -1,11 +1,12 @@
 import express from 'express';
-import { makeMechanic,createMechanic,getAllMechanics,getMechanicById,updateMechanic,deleteMechanic, toggleAvailability, getSortedMechanics, getSingleMechanic, getAllTestMechanics, getMechanicWithServicePrice, getSingleMechanicAdmin, getAvailability } from './mechanic.controller';
+import { makeMechanic,createMechanic,updateMechanic,deleteMechanic, toggleAvailability, getSortedMechanics, getSingleMechanic, getAllTestMechanics, getMechanicWithServicePrice, getSingleMechanicAdmin, getAvailability,  setServiceRadius } from './mechanic.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = express.Router();
 
 router.post('/make-mechanic', adminMiddleware("admin"), makeMechanic);
 router.post('/create', adminMiddleware("admin"), createMechanic);
+router.post("/serviceRadius",adminMiddleware("mechanic"), setServiceRadius)
 router.get('/all', adminMiddleware("admin","user"), getAllTestMechanics);
 router.get('/availability',adminMiddleware("admin","mechanic"), getAvailability);
 // router.get('/all',adminMiddleware("admin","user"),  getAllMechanics);

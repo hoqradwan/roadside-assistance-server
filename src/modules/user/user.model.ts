@@ -29,7 +29,7 @@ const UserSchema = new Schema<IUser>(
     confirmPassword: { type: String, trim: true },
     phone: { type: String, trim: true },
     address: { type: String, trim: true },
-    image : { type: String, default: "" },
+    image: { type: String, default: "" },
     role: {
       type: String,
       enum: ["admin", "user", "mechanic"],
@@ -38,9 +38,8 @@ const UserSchema = new Schema<IUser>(
     status: {
       type: String,
       enum: ["active", "blocked"],
-      default: "active", // Default value set to active
+      default: "active",
     },
-   
     location: {
       type: {
         type: String,
@@ -52,12 +51,14 @@ const UserSchema = new Schema<IUser>(
         default: [0, 0],
       },
     },
-  
+    serviceRadius: {
+      type: Number,
+      default: 0,
+    },
     isDeleted: {
       type: Boolean,
       default: false,
     },
-
     uniqueUserId: {
       type: String,
       default: generateUniqueId,

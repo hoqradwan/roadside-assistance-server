@@ -1,12 +1,14 @@
-import { Schema, model } from 'mongoose';
+import { ObjectId, Schema, model } from 'mongoose';
 
 export interface IPaymentMethod {
     bankName: string;
     accountHolderName: string;
     accountNumber: string;
+    user : ObjectId
 }
 
 const paymentMethodSchema = new Schema<IPaymentMethod>({
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     bankName: {
         type: String,
         required: true,

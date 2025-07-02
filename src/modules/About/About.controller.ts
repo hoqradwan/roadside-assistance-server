@@ -15,6 +15,8 @@ import {
   updateAboutInDB,
 } from "./About.service";
 import { AboutModel } from "./About.model";
+import { emitNotification } from "../../utils/socket";
+import { CustomRequest } from "../../utils/customRequest";
 
 const sanitizeOptions = {
   allowedTags: [
@@ -95,7 +97,21 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+export const testNotification = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id: userId } = req.user; // Extract user ID from the request
+  emitNotification({
+    userId,
+    userMsg: "This is a test user notification from the About module.",
+    adminMsg: "This is a test admin notification from the About module.",
+  })
 
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "About created successfully.",
+    data: null,
+  });
+});
 export const getAllAbout = catchAsync(async (req: Request, res: Response) => {
   const result = await getAllAboutFromDB();
 

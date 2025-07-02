@@ -468,7 +468,338 @@ export const emitNotification = async ({
 };
 
 
+/* 
+  socket.on('joinServiceRoom', (serviceRequestId: string) => {
+    socket.join(`service-${serviceRequestId}`);
+    console.log(`Socket ${socket.id} joined service room: service-${serviceRequestId}`);
+  });
 
+  socket.on('joinUserRoom', (userId: string) => {
+    socket.join(`user-${userId}`);
+    console.log(`Socket ${socket.id} joined user room: user-${userId}`);
+  });
+
+  socket.on('joinMechanicRoom', (mechanicId: string) => {
+    socket.join(`mechanic-${mechanicId}`);
+    console.log(`Socket ${socket.id} joined mechanic room: mechanic-${mechanicId}`);
+  });
+
+
+import { Router } from 'express';
+import { initializeTracking, updateMechanicLocation, updateUserLocation, getTrackingInfo, completeTracking } from '../controllers/tracking.controller'; // Import functions
+
+const router = Router();
+
+// Initialize tracking
+router.post('/initialize', initializeTracking);
+
+// Update mechanic location
+router.put('/:serviceRequestId/mechanic-location', updateMechanicLocation);
+
+// Update user location
+router.put('/:serviceRequestId/user-location', updateUserLocation);
+
+// Get tracking info
+router.get('/:serviceRequestId', getTrackingInfo);
+
+// Complete tracking
+router.put('/:serviceRequestId/complete', completeTracking);
+
+export default router;
+
+............................................................................
+import { Request, Response } from 'express';
+import { initializeTrackingService, updateMechanicLocationService, updateUserLocationService, getTrackingInfoService, completeTrackingService } from '../services/tracking.service';
+
+export const initializeTracking = async (req: Request, res: Response) => {
+  try {
+    const { serviceRequestId, userId, mechanicId } = req.body;
+    const tracking = await initializeTrackingService(serviceRequestId, userId, mechanicId);
+    res.status(201).json({
+      success: true,
+      message: 'Tracking initialized successfully',
+      data: tracking
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Failed to initialize tracking',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const updateMechanicLocation = async (req: Request, res: Response) => {
+  try {
+    const { serviceRequestId } = req.params;
+    const { mechanicId, longitude, latitude, accuracy, speed, heading } = req.body;
+    const tracking = await updateMechanicLocationService(serviceRequestId, mechanicId, longitude, latitude, { accuracy, speed, heading });
+    res.status(200).json({
+      success: true,
+      message: 'Mechanic location updated successfully',
+      data: {
+        distance: tracking?.distance,
+        estimatedArrival: tracking?.estimatedArrival,
+        status: tracking?.status
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Failed to update mechanic location',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const updateUserLocation = async (req: Request, res: Response) => {
+  try {
+    const { serviceRequestId } = req.params;
+    const { userId, longitude, latitude } = req.body;
+    const tracking = await updateUserLocationService(serviceRequestId, userId, longitude, latitude);
+    res.status(200).json({
+      success: true,
+      message: 'User location updated successfully',
+      data: {
+        distance: tracking?.distance,
+        estimatedArrival: tracking?.estimatedArrival,
+        status: tracking?.status
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Failed to update user location',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const getTrackingInfo = async (req: Request, res: Response) => {
+  try {
+    const { serviceRequestId } = req.params;
+    const tracking = await getTrackingInfoService(serviceRequestId);
+    if (!tracking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tracking information not found'
+      });
+    }
+    res.status(200).json({
+      success: true,
+      data: tracking
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get tracking information',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const completeTracking = async (req: Request, res: Response) => {
+  try {
+    const { serviceRequestId } = req.params;
+    await completeTrackingService(serviceRequestId);
+    res.status(200).json({
+      success: true,
+      message: 'Tracking completed successfully'
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Failed to complete tracking',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+...........................................................................
+
+import { DistanceTrackingModel } from '../models/tracking.model';
+import { UserModel } from '../models/user.model';
+import { DistanceUtils } from '../utils/distance.utils';
+import { io } from '../server'; // Import Socket.IO instance
+
+export const initializeTrackingService = async (serviceRequestId: string, userId: string, mechanicId: string) => {
+  // Get user and mechanic locations
+  const user = await UserModel.findById(userId);
+  const mechanic = await UserModel.findById(mechanicId);
+
+  if (!user || !mechanic) {
+    throw new Error('User or mechanic not found');
+  }
+
+  // Calculate the distance between user and mechanic
+  const distance = DistanceUtils.calculateDistance(
+    user.location.coordinates[1], // user latitude
+    user.location.coordinates[0], // user longitude
+    mechanic.location.coordinates[1], // mechanic latitude
+    mechanic.location.coordinates[0] // mechanic longitude
+  );
+
+  const estimatedArrival = DistanceUtils.calculateETA(distance);
+
+  // Initialize a new tracking session
+  const tracking = new DistanceTrackingModel({
+    serviceRequestId,
+    userId,
+    mechanicId,
+    userLocation: user.location,
+    mechanicLocation: mechanic.location,
+    distance,
+    estimatedArrival,
+    status: 'pending'
+  });
+
+  await tracking.save();
+
+  // Emit tracking initialized event
+  io.to(`service-${serviceRequestId}`).emit('trackingInitialized', {
+    serviceRequestId,
+    userId,
+    mechanicId,
+    distance,
+    estimatedArrival
+  });
+
+  return tracking;
+};
+
+export const updateMechanicLocationService = async (serviceRequestId: string, mechanicId: string, longitude: number, latitude: number, additionalData: any) => {
+  const tracking = await DistanceTrackingModel.findOne({ 
+    serviceRequestId, 
+    mechanicId,
+    status: { $in: ['pending', 'in_progress'] }
+  });
+
+  if (!tracking) {
+    throw new Error('Tracking session not found');
+  }
+
+  // Update mechanic location
+  tracking.mechanicLocation = {
+    type: 'Point',
+    coordinates: [longitude, latitude]
+  };
+
+  // Calculate new distance
+  const newDistance = DistanceUtils.calculateDistance(
+    tracking.userLocation.coordinates[1], // user latitude
+    tracking.userLocation.coordinates[0], // user longitude
+    latitude, // mechanic latitude
+    longitude  // mechanic longitude
+  );
+
+  tracking.distance = newDistance;
+  tracking.estimatedArrival = DistanceUtils.calculateETA(newDistance);
+  tracking.lastUpdated = new Date();
+
+  // Add location update to tracking history
+  const locationUpdate = {
+    userId: mechanicId,
+    userType: 'mechanic',
+    location: { type: 'Point', coordinates: [longitude, latitude] },
+    timestamp: new Date(),
+    ...additionalData
+  };
+
+  tracking.trackingHistory.push(locationUpdate);
+
+  if (newDistance <= 0.1 && tracking.status !== 'arrived') {
+    tracking.status = 'arrived';
+    io.to(`service-${serviceRequestId}`).emit('mechanicArrived', {
+      serviceRequestId,
+      userId: tracking.userId,
+      mechanicId,
+      distance: newDistance
+    });
+  }
+
+  await tracking.save();
+
+  io.to(`service-${serviceRequestId}`).emit('locationUpdate', {
+    serviceRequestId,
+    userId: tracking.userId,
+    mechanicId,
+    distance: newDistance,
+    estimatedArrival: tracking.estimatedArrival,
+    mechanicLocation: { longitude, latitude },
+    status: tracking.status
+  });
+
+  return tracking;
+};
+
+export const updateUserLocationService = async (serviceRequestId: string, userId: string, longitude: number, latitude: number) => {
+  const tracking = await DistanceTrackingModel.findOne({ 
+    serviceRequestId, 
+    userId,
+    status: { $in: ['pending', 'in_progress'] }
+  });
+
+  if (!tracking) {
+    throw new Error('Tracking session not found');
+  }
+
+  // Update user location
+  tracking.userLocation = {
+    type: 'Point',
+    coordinates: [longitude, latitude]
+  };
+
+  const newDistance = DistanceUtils.calculateDistance(
+    latitude, // user latitude
+    longitude, // user longitude
+    tracking.mechanicLocation.coordinates[1], // mechanic latitude
+    tracking.mechanicLocation.coordinates[0] // mechanic longitude
+  );
+
+  tracking.distance = newDistance;
+  tracking.estimatedArrival = DistanceUtils.calculateETA(newDistance);
+  tracking.lastUpdated = new Date();
+
+  // Add location update to tracking history
+  const locationUpdate = {
+    userId,
+    userType: 'user',
+    location: { type: 'Point', coordinates: [longitude, latitude] },
+    timestamp: new Date()
+  };
+
+  tracking.trackingHistory.push(locationUpdate);
+
+  await tracking.save();
+
+  io.to(`service-${serviceRequestId}`).emit('locationUpdate', {
+    serviceRequestId,
+    userId,
+    mechanicId: tracking.mechanicId,
+    distance: newDistance,
+    estimatedArrival: tracking.estimatedArrival,
+    userLocation: { longitude, latitude },
+    status: tracking.status
+  });
+
+  return tracking;
+};
+
+export const getTrackingInfoService = async (serviceRequestId: string) => {
+  return await DistanceTrackingModel.findOne({ serviceRequestId });
+};
+
+export const completeTrackingService = async (serviceRequestId: string) => {
+  await DistanceTrackingModel.findOneAndUpdate(
+    { serviceRequestId },
+    { status: 'completed', lastUpdated: new Date() }
+  );
+
+  io.to(`service-${serviceRequestId}`).emit('trackingCompleted', { serviceRequestId });
+};
+
+
+
+*/
 
 /* 
 

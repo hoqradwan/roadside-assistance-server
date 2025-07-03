@@ -1,8 +1,6 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import { IReview } from './review.interface';
 
-
-
 const ReviewSchema = new Schema<IReview>(
     {
         user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

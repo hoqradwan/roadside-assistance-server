@@ -13,7 +13,6 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
   const R = 6371; // Earth's radius in kilometers
   const dLat = toRadians(lat2 - lat1);
   const dLon = toRadians(lon2 - lon1);
-  
   const a = 
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
@@ -142,7 +141,6 @@ DistanceTrackingSchema.index({ mechanicLocation: "2dsphere" });
 DistanceTrackingSchema.index({ serviceRequestId: 1 });
 
 export const DistanceTrackingModel = mongoose.model<IDistanceTracking>("DistanceTracking", DistanceTrackingSchema);
-
 // services/tracking.service.ts
 import { DistanceTrackingModel, IDistanceTracking, ILocationUpdate } from '../models/tracking.model';
 import { UserModel } from '../models/user.model';

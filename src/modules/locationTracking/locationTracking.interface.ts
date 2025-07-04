@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export interface ILocationUpdate {
   userId: string;
   userType: 'user' | 'mechanic';
@@ -12,9 +14,9 @@ export interface ILocationUpdate {
 }
 
 export interface IDistanceTracking extends Document {
-  serviceRequestId: string;
-  userId: string;
-  mechanicId: string;
+  orderId: Types.ObjectId;
+  userId: Types.ObjectId;
+  mechanicId: Types.ObjectId;
   userLocation: {
     type: 'Point';
     coordinates: [number, number];

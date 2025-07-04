@@ -60,7 +60,7 @@ export interface ILocationUpdate {
 }
 
 export interface IDistanceTracking extends Document {
-  serviceRequestId: string;
+  orderId: string;
   userId: string;
   mechanicId: string;
   userLocation: {
@@ -437,228 +437,6 @@ trackingService.trackingEventEmitter.on('trackingCancelled', (data) => {
   io.to(`service-${data.serviceRequestId}`).emit('trackingCancelled', data);
 });
 
-/**
- * Initialize tracking for a service request
- */
-export const initializeTrackingController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId, userId, mechanicId } = req.body;
-
-    const tracking = await trackingService.initializeTracking(
-      serviceRequestId,
-      userId,
-      mechanicId
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Tracking initialized successfully',
-      data: tracking
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to initialize tracking',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Update mechanic location
- */
-export const updateMechanicLocationController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId } = req.params;
-    const { mechanicId, longitude, latitude, accuracy, speed, heading } = req.body;
-
-    const tracking = await trackingService.updateMechanicLocation(
-      serviceRequestId,
-      mechanicId,
-      longitude,
-      latitude,
-      { accuracy, speed, heading }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: 'Mechanic location updated successfully',
-      data: {
-        distance: tracking?.distance,
-        estimatedArrival: tracking?.estimatedArrival,
-        status: tracking?.status
-      }
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update mechanic location',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Update user location
- */
-export const updateUserLocationController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId } = req.params;
-    const { userId, longitude, latitude } = req.body;
-
-    const tracking = await trackingService.updateUserLocation(
-      serviceRequestId,
-      userId,
-      longitude,
-      latitude
-    );
-
-    res.status(200).json({
-      success: true,
-      message: 'User location updated successfully',
-      data: {
-        distance: tracking?.distance,
-        estimatedArrival: tracking?.estimatedArrival,
-        status: tracking?.status
-      }
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update user location',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Get current tracking information
- */
-export const getTrackingInfoController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId } = req.params;
-
-    const tracking = await trackingService.getTrackingInfo(serviceRequestId);
-
-    if (!tracking) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tracking information not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: tracking
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tracking information',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Complete tracking
- */
-export const completeTrackingController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId } = req.params;
-
-    await trackingService.completeTracking(serviceRequestId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Tracking completed successfully'
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to complete tracking',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Cancel tracking
- */
-export const cancelTrackingController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId } = req.params;
-
-    await trackingService.cancelTracking(serviceRequestId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Tracking cancelled successfully'
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to cancel tracking',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Find nearby mechanics
- */
-export const findNearbyMechanicsController = async (req: Request, res: Response) => {
-  try {
-    const { longitude, latitude, radius = 10 } = req.query;
-
-    if (!longitude || !latitude) {
-      return res.status(400).json({
-        success: false,
-        message: 'Longitude and latitude are required'
-      });
-    }
-
-    const mechanics = await trackingService.findNearbyMechanics(
-      parseFloat(longitude as string),
-      parseFloat(latitude as string),
-      parseFloat(radius as string)
-    );
-
-    res.status(200).json({
-      success: true,
-      data: mechanics,
-      count: mechanics.length
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to find nearby mechanics',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-/**
- * Get tracking history
- */
-export const getTrackingHistoryController = async (req: Request, res: Response) => {
-  try {
-    const { serviceRequestId } = req.params;
-
-    const history = await trackingService.getTrackingHistory(serviceRequestId);
-
-    res.status(200).json({
-      success: true,
-      data: history
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tracking history',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
 
 // routes/tracking.routes.ts
 import { Router } from 'express';
@@ -708,9 +486,9 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   // Join service request room
-  socket.on('joinServiceRoom', (serviceRequestId: string) => {
-    socket.join(`service-${serviceRequestId}`);
-    console.log(`Socket ${socket.id} joined service room: service-${serviceRequestId}`);
+  socket.on('joinServiceRoom', (orderId: string) => {
+    socket.join(`service-${orderId}`);
+    console.log(`Socket ${socket.id} joined service room: service-${orderId}`);
   });
 
   // Join user-specific room
@@ -728,12 +506,12 @@ io.on('connection', (socket) => {
   // Handle real-time location updates from clients
   socket.on('updateLocation', async (data) => {
     try {
-      const { serviceRequestId, userType, userId, longitude, latitude } = data;
+      const { orderId, userType, userId, longitude, latitude } = data;
       
       if (userType === 'mechanic') {
-        await trackingService.updateMechanicLocation(serviceRequestId, userId, longitude, latitude);
+        await trackingService.updateMechanicLocation(orderId, userId, longitude, latitude);
       } else {
-        await trackingService.updateUserLocation(serviceRequestId, userId, longitude, latitude);
+        await trackingService.updateUserLocation(orderId, userId, longitude, latitude);
       }
     } catch (error) {
       socket.emit('error', { message: 'Failed to update location' });

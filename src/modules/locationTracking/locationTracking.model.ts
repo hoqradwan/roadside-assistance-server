@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { IDistanceTracking, ILocationUpdate } from "./locationTracking.interface";
 import { Schema } from "mongoose";
 
@@ -23,9 +23,9 @@ const LocationUpdateSchema = new Schema<ILocationUpdate>({
 });
 
 const DistanceTrackingSchema = new Schema<IDistanceTracking>({
-  serviceRequestId: { type: String, required: true, unique: true },
-  userId: { type: String, required: true },
-  mechanicId: { type: String, required: true },
+  orderId: { type: Schema.Types.ObjectId , ref:"Order", required: true},
+  userId: { type: Schema.Types.ObjectId, ref:"User", required: true },
+  mechanicId: { type: Schema.Types.ObjectId, ref:"User", required: true },
   userLocation: {
     type: {
       type: String,

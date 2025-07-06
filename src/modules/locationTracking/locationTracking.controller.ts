@@ -7,7 +7,7 @@ import { trackingEventEmitter } from "./locationTracking.event";
 import { io } from "../../utils/socket";
 
 export const initializeTracking = catchAsync(async(req:CustomRequest, res:Response)=>{
-    const orderId = req.body;
+    const {orderId} = req.body;
     const {id : userId} = req.user;
     const {mechanicId} = req.params;
     const result = await initializeTrackingIntoDB(orderId, userId, mechanicId);
@@ -72,22 +72,22 @@ export const cancelTracking = catchAsync(async(req:CustomRequest, res:Response)=
 
 trackingEventEmitter.on('locationUpdate', (data) => {
   // Emit to specific room (service request)
-  io?.to(`service-${data.serviceRequestId}`).emit('locationUpdate', data);
+  io?.to(`service-${data.orderId}`).emit('locationUpdate', data);
   
   // Also emit to user and mechanic specific rooms
-  io?.to(`user-${data.userId}`).emit('locatio?nUpdate', data);
-  io?.to(`mechanic-${data.mechanicId}`).emit('locatio?nUpdate', data);
+  io?.to(`user-${data.userId}`).emit('locationUpdate', data);
+  io?.to(`mechanic-${data.mechanicId}`).emit('locationUpdate', data);
 });
 
 trackingEventEmitter.on('mechanicArrived', (data) => {
-  io?.to(`service-${data.serviceRequestId}`).emit('mechanicArrived', data);
+  io?.to(`service-${data.orderId}`).emit('mechanicArrived', data);
   io?.to(`user-${data.userId}`).emit('mechanicArrived', data);
 });
 
 trackingEventEmitter.on('trackingCompleted', (data) => {
-  io?.to(`service-${data.serviceRequestId}`).emit('trackingCompleted', data);
+  io?.to(`service-${data.orderId}`).emit('trackingCompleted', data);
 });
 
 trackingEventEmitter.on('trackingCancelled', (data) => {
-  io?.to(`service-${data.serviceRequestId}`).emit('trackingCancelled', data);
+  io?.to(`service-${data.orderId}`).emit('trackingCancelled', data);
 });

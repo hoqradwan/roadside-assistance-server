@@ -14,6 +14,7 @@ import { emitNotification } from "../../utils/socket";
 import { NotificationModel } from "../notifications/notification.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 import mongoose from "mongoose";
+import { calculateDistance } from "./order.utils";
 
 export const createOrderIntoDB = async (userId: string, orderData: any) => {
   // 1. Validate user exists
@@ -142,7 +143,7 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
     location: locationData,
     user: userId,
     total: Math.round(total * 100) / 100, // Round to 2 decimal places
-    status: "processing",
+    status: "pending",
     createdAt: new Date(),
     updatedAt: new Date()
   };
@@ -170,6 +171,18 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
   return order[0];
 };
 
+export const acceptOrderIntoDB = async (orderId: string, userId: string) => {
+  const orderExists = await Order.findById(orderId);
+  if (!orderExists) {
+    throw new Error("Order not found");
+  }
+  if (orderExists.status !== "pending") {
+    throw new Error("Order must has to be pending to be accepted")
+  }
+  const result = await Order.findByIdAndUpdate(orderId, { status: "processing" }, { new: true })
+  return result;
+}
+
 export const getOrdersByUserFromDB = async (userId: string) => {
   try {
     // Fetch all orders for the user and populate required fields
@@ -187,12 +200,12 @@ export const getOrdersByUserFromDB = async (userId: string) => {
     const serviceRates = await Promise.all(
       userOrders.map(async (order) => {
         const rating = await Mechanic.findOne({ user: order.mechanic }).select("rating");
-        
+
         // Fetch the mechanic's service rates based on the mechanic in the order
         const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
           .populate({
             path: "services.service",
-            model: "Service", 
+            model: "Service",
             select: "name"
           });
 
@@ -224,11 +237,11 @@ export const getOrdersByUserFromDB = async (userId: string) => {
         });
 
         // Combine the order data with the service rates
-        return { 
-          ...order.toObject(), 
-          serviceRates: servicesWithRates, 
-          appService: appService.amount, 
-          rating: rating ? rating.rating : null 
+        return {
+          ...order.toObject(),
+          serviceRates: servicesWithRates,
+          appService: appService.amount,
+          rating: rating ? rating.rating : null
         };
       })
     );
@@ -439,7 +452,7 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
       services: filteredServices,
     };
 
-    console.log("Filtered Mechanic Service Rates:", filteredMechanicServiceRate);
+    // console.log("Filtered Mechanic Service Rates:", filteredMechanicServiceRate);
 
     // Return the order, app service amount, and filtered mechanic's service rates
     return {
@@ -455,11 +468,12 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
 
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
   const userId = userData?.id;  // The logged-in user's ID
-  let cancelledCount, processingCount, completedCount
+  let cancelledCount, processingCount, completedCount;
+  const query = status ? { status } : {};
 
   // If the user is an admin, they can fetch orders for any mechanic
   if (userData.role === 'admin') {
-    const order = await Order.find({ status }).select("-vehicle -services -location -user");
+    const order = await Order.find(query).select("-vehicle -services -location -user");
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
     cancelledCount = await Order.countDocuments({ status: 'cancelled' });
@@ -468,20 +482,44 @@ export const getOrdersByStatusFromDB = async (status: string, userData: Partial<
 
   // If the user is a mechanic, they can only fetch their own orders
   if (userData.role === 'mechanic') {
-    const order = await Order.find({ status, mechanic: userId })
+    // Get mechanic's location from the database
+    const mechanic = await UserModel.findById(userId).select('location');
+
+    if (!mechanic || !mechanic.location) {
+      return { error: "Mechanic location not found" };
+    }
+
+    const mechanicLocation = mechanic.location.coordinates;
+
+    const orders = await Order.find({ ...query, mechanic: userId })
       .select("vehicle services location user total status")
       .populate({ path: 'vehicle', select: "brand model number" })
       .populate({ path: 'user', select: "name" })
       .populate({ path: "services", model: "Service", select: "name" });
-    console.log("Orderrs", order);
+
+    // Add the distance property for each order
+    const ordersWithDistance = await Promise.all(
+      orders.map(async (order) => {
+        const userLocation = order.location.coordinates;
+
+        // Calculate distance between mechanic and user location using MongoDB's geoNear or Haversine formula
+        const distance = calculateDistance(mechanicLocation, userLocation);  // Implement this function to calculate the distance
+
+        return {
+          ...order.toObject(),
+          distance: Number(distance).toFixed(2), // Fixed to two decimal places
+        };
+      })
+    );
+
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
     cancelledCount = await Order.countDocuments({ status: 'cancelled' });
-    return { order, processingCount, completedCount, cancelledCount };
+
+    return { orders: ordersWithDistance, processingCount, completedCount, cancelledCount };
   }
+};
 
-
-}
 export const getOrdersByMechanicFromDB = async (mechanicid: string, userData: Partial<IUser>) => {
   const userId = userData?.id;  // The logged-in user's ID
 

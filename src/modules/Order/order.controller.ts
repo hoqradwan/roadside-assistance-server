@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import Order from "./order.model";
-import { cancelOrderFromDB, createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersByUserFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
+import { acceptOrderIntoDB, cancelOrderFromDB, createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersByUserFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: CustomRequest, res: Response) => {
@@ -42,7 +42,7 @@ export const getOrders = catchAsync(async (req: Request, res: Response) => {
   });
 })
 export const getOrdersByUser = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { id:userId } = req.user;
+  const { id: userId } = req.user;
   const result = await getOrdersByUserFromDB(userId);
   sendResponse(res, {
     statusCode: 200,
@@ -61,8 +61,9 @@ export const getSingleOrder = catchAsync(async (req: CustomRequest, res: Respons
     data: result,
   });
 })
+
 export const getOrdersByStatus = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { status } = req.body;
+  const status = req.params.status;
   const userData = req.user
   const result = await getOrdersByStatusFromDB(status, userData);
 
@@ -82,6 +83,18 @@ export const cancelOrder = catchAsync(async (req: CustomRequest, res: Response) 
     statusCode: 200,
     success: true,
     message: "Order cancelled successfully",
+    data: result,
+  });
+})
+export const acceptOrder = catchAsync(async (req: CustomRequest, res: Response) => {
+  const orderId = req.params.orderId;
+  const { id: userId } = req.user
+  const result = await acceptOrderIntoDB(orderId, userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order accepted successfully",
     data: result,
   });
 })

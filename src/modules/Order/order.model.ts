@@ -8,7 +8,7 @@ const OrderSchema: Schema = new Schema<IOrder>({
     mechanic: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     services: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MechanicServiceRate', required: true }],
     vehicle: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
-    status: { type: String, required: true, enum: [ 'processing', 'completed', 'cancelled'], default: 'processing' },
+    status: { type: String, required: true, enum: ['pending', 'processing', 'completed', 'cancelled'], default: 'processing' },
     total: { type: Number, required: true },
       location: {
       type: {

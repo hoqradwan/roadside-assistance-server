@@ -273,10 +273,19 @@ export const sortMechanics = async ({
 
 
 export const toggleAvailabilityIntoDB = async (mechanicId: string) => {
-  const mechanic = await Mechanic.findById(mechanicId);
-  if (!mechanic) throw new Error("Mechanic not found");
+  const mechanicUser = await UserModel.findById(mechanicId);
+  if (!mechanicUser) throw new Error("Mechanic not found");
+  const mechanic = await Mechanic.findOne({ user: mechanicId });
+  if (!mechanic) throw new Error("Mechanic details not found");
 
-  const result = await Mechanic.findByIdAndUpdate(mechanicId, { isAvailable: !mechanic.isAvailable }, { new: true });
+  // Toggle the availability
+  const newAvailability = !mechanic.isAvailable;
+
+  // Update both Mechanic and User models for consistency
+  await Mechanic.updateOne({ user: mechanicId }, { isAvailable: newAvailability });
+
+  // Return the updated mechanic document
+  const result = await Mechanic.findOne({ user: mechanicId });
   return result;
 }
 

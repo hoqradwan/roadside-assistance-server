@@ -1,5 +1,4 @@
 
-
 import { get, Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import mongoose, { ObjectId } from 'mongoose';
@@ -7,11 +6,11 @@ import { logger } from '../logger/logger';
 import colors from 'colors';
 import { ChatMessage } from '../modules/Chat/chat.model';
 import { getUserData } from './getUserData';
-import { on } from 'events';
 import { NotificationModel } from '../modules/notifications/notification.model';
 import { INotification } from '../modules/notifications/notification.interface';
 import { UserModel } from '../modules/user/user.model';
 import { updateMechanicLocationIntoDB, updateUserLocationIntoDB } from '../modules/locationTracking/locationTracking.service';
+import Order from '../modules/Order/order.model';
 
 // Extend Socket interface to include userId
 declare module 'socket.io' {
@@ -51,7 +50,6 @@ const initSocketIO = (server: HttpServer) => {
 
     userData = getUserData(token as string);
 
-    console.log({ userData })
 
     // console.log("userData", userData);
 
@@ -98,7 +96,7 @@ const initSocketIO = (server: HttpServer) => {
         });
 
 
-        console.log({ onlineUsers });
+        // console.log({ onlineUsers });
         // Emit to recipient if online
         if (onlineUsers.has(to)) {
           const sockeId = onlineUsers.get(to);
@@ -114,37 +112,62 @@ const initSocketIO = (server: HttpServer) => {
       }
     });
     // Join service request room
-  socket.on('joinServiceRoom', (orderId: string) => {
-    socket.join(`service-${orderId}`);
-    console.log(`Socket ${socket.id} joined service room: service-${orderId}`);
-  });
+    socket.on('joinServiceRoom', async (orderId: string) => {
+      try {
+        console.log(`Attempting to join service room for order: ${orderId}`);
 
-  // Join user-specific room
-  socket.on('joinUserRoom', (userId: string) => {
-    socket.join(`user-${userId}`);
-    console.log(`Socket ${socket.id} joined user room: user-${userId}`);
-  });
+        const order = await Order.findById(orderId);
+        console.log('Order found:', order ? 'Yes' : 'No');
 
-  // Join mechanic-specific room
-  socket.on('joinMechanicRoom', (mechanicId: string) => {
-    socket.join(`mechanic-${mechanicId}`);
-    console.log(`Socket ${socket.id} joined mechanic room: mechanic-${mechanicId}`);
-  });
+        if (!order) {
+          console.log('Order not found, emitting error');
+          socket.emit('error', { message: 'Order not found' });
+          return;
+        }
 
-  // Handle real-time location updates from clients
-  socket.on('updateLocation', async (data) => {
-    try {
-      const { orderId, userType, userId, longitude, latitude } = data;
-      
-      if (userType === 'mechanic') {
-        await updateMechanicLocationIntoDB(orderId, userId, longitude, latitude);
-      } else {
-        await updateUserLocationIntoDB(orderId, userId, longitude, latitude);
+        socket.join(`service-${orderId}`);
+        console.log(`Socket ${socket.id} joined service room: service-${orderId}`);
+
+        // Add this log to confirm emission
+        socket.emit("joinServiceRoom", order);
+
+      } catch (error) {
+        console.error('Error joining service room:', error);
+        socket.emit('error', { message: 'Failed to join service room' });
       }
-    } catch (error) {
-      socket.emit('error', { message: 'Failed to update location' });
-    }
-  });
+    });
+    // socket.on("testMsg", (msg: string) => {
+    //   console.log(msg);
+    //   socket.emit("testMsg",msg);
+    // })
+    // Join user-specific room
+    socket.on('joinUserRoom', (userId: string) => {
+      socket.join(`user-${userId}`);
+      console.log(`Socket ${socket.id} joined user room: user-${userId}`);
+      socket.emit("joinUserRoom" , userId)
+    });
+
+    // Join mechanic-specific room
+    socket.on('joinMechanicRoom', (mechanicId: string) => {
+      socket.join(`mechanic-${mechanicId}`);
+      console.log(`Socket ${socket.id} joined mechanic room: mechanic-${mechanicId}`);
+    });
+
+    // Handle real-time location updates from clients
+    socket.on('updateLocation', async (data) => {
+      try {
+        const { orderId, userType, userId, longitude, latitude } = data;
+        let result;
+        if (userType === 'mechanic') {
+         result = await updateMechanicLocationIntoDB(orderId, userId, longitude, latitude);
+        } else {
+         result = await updateUserLocationIntoDB(orderId, userId, longitude, latitude);
+        }
+        socket.emit("updateLocation",result);
+      } catch (error) {
+        socket.emit('error', { message: 'Failed to update location' });
+      }
+    });
     const locationBuffer: any = [];
     const LOCATION_LIMIT = 30;
     let lastUpdateTime = Date.now();

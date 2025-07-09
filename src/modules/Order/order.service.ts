@@ -6,7 +6,6 @@ import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import Admin from "../Admin/admin.model";
 import paginationBuilder from "../../utils/paginationBuilder";
-import { IOrder } from "./order.interface";
 import { UserModel } from "../user/user.model";
 import Mechanic from "../Mechanic/mechanic.model";
 import Vehicle from "../Vehicle/vehicle.model";

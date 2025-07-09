@@ -12,7 +12,6 @@ export const initializeTrackingIntoDB = async (
   // Get user and mechanic locations
   const user = await UserModel.findById(userId);
   const mechanic = await UserModel.findById(mechanicId);
-
   if (!user || !mechanic) {
     throw new Error('User or mechanic not found');
   }
@@ -38,7 +37,16 @@ export const initializeTrackingIntoDB = async (
   });
 
   await tracking.save();
-  
+//   trackingEventEmitter.on('trackingInitialized', (data) => {
+//   console.log('Event data received:', data);
+
+//   // Example: Process the event (save data, notify, etc.)
+//   // Here, we're just simulating an action
+//   setTimeout(() => {
+//     console.log(`Processed tracking event for Order ID: ${data.orderId}`);
+//   }, 1000);
+// });
+
   // Emit tracking initialized event
   trackingEventEmitter.emit('trackingInitialized', {
     orderId: orderId,
@@ -190,7 +198,7 @@ export const updateUserLocationIntoDB = async (
   return tracking;
 };
 
-export const getTrackingInfo = async (orderId: string): Promise<IDistanceTracking | null> => {
+export const getTrackingInfoFromDB = async (orderId: string): Promise<IDistanceTracking | null> => {
   return await DistanceTrackingModel.findOne({ orderId });
 };
 

@@ -1,7 +1,6 @@
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { getChatHistoryFromDB, sendMessageIntoDB } from "./chat.service";
-import { IChatMessage } from "./chat.interface";
 import { CustomRequest } from "../../utils/customRequest";
 import { Response } from "express";
 import AppError from "../../errors/AppError";
@@ -29,7 +28,6 @@ export const getChatHistory = catchAsync(async (req: any, res: any) => {
 
 export const sendMessage = catchAsync(async (req: CustomRequest, res: Response) => {
     const { id: sender } = req.user;
-    console.log("Sender ID:", sender); // Debugging line to check sender ID
     const { receiver, message } = req.body; // Changed from 'message' to 'content' to match the socket implementation
   
     // Validate receiver ID

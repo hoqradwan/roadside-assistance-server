@@ -19,6 +19,7 @@ import { withdrawRoutes } from "../modules/Withdraw/withdraw.route";
 import { PaymentMethodRoutes } from "../modules/PaymentMethod/paymentMethod.route";
 import { reviewRoutes } from "../modules/Review/review.route";
 import { MechanicServiceRateRoute } from "../modules/MechanicServiceRate/mechanicServiceRate.route";
+import { locationTrackingRoutes } from "../modules/locationTracking/locationTracking.route";
 
 const router = express.Router();
 
@@ -42,5 +43,6 @@ router.use("/api/v1/privacy", PrivacyRoutes);
 router.use("/api/v1/notification", NotificationRoutes);
 router.use("/api/v1/feedback", feedBackRoutes);
 router.use("/api/v1/purchase", paymentRoutes);
+router.use("/api/v1/locationTracking", locationTrackingRoutes);
 
 export default router;

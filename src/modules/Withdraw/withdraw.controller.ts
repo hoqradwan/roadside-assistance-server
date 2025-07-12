@@ -2,7 +2,7 @@ import { Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
-import { createWithdrawIntoDB,  getAllWithdrawRequestsFromDB,  markAsPaidIntoDB } from "./withdraw.service";
+import { createWithdrawIntoDB, getAllWithdrawRequestsByMechanic, getAllWithdrawRequestsFromDB, markAsPaidIntoDB } from "./withdraw.service";
 
 export const createWithdraw = catchAsync(async (req: CustomRequest, res: Response) => {
     const { amount } = req.body;
@@ -16,7 +16,7 @@ export const createWithdraw = catchAsync(async (req: CustomRequest, res: Respons
     })
 });
 export const markAsPaid = catchAsync(async (req: CustomRequest, res: Response) => {
-    const {mechanicId} = req.params;
+    const { mechanicId } = req.params;
     const result = await markAsPaidIntoDB(mechanicId);
     sendResponse(res, {
         statusCode: 200,
@@ -31,6 +31,16 @@ export const getAllWithdrawRequests = catchAsync(async (req: CustomRequest, res:
         statusCode: 200,
         success: true,
         message: "Withdraw request retrieved successfully",
+        data: result
+    })
+});
+export const allWithdrawRequests = catchAsync(async (req: CustomRequest, res: Response) => {
+    const { id: mechanicId } = req.user;
+    const result = await getAllWithdrawRequestsByMechanic(mechanicId);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Withdraw request by mechanic retrieved successfully",
         data: result
     })
 });

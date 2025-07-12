@@ -1,5 +1,6 @@
 import Mechanic from "../Mechanic/mechanic.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
+import { UserModel } from "../user/user.model";
 import Wallet from "../Wallet/wallet.model";
 import Withdraw from "./withdraw.model";
 
@@ -26,8 +27,8 @@ export const getAllWithdrawRequestsFromDB = async () => {
     const mechanicWithdraw = await Withdraw.find().lean();
     const mechanicWithdrawWithServiceCount = await Promise.all(
         mechanicWithdraw.map(async (withdraw) => {
-            const mechanic = await Mechanic.findOne({ user: withdraw.user }).populate({path:"user",select:"name"}).select("uniqueMechanicId").lean();
-            const mechanicServiceRate = await MechanicServiceRateModel.findOne({mechanic: withdraw.user});
+            const mechanic = await Mechanic.findOne({ user: withdraw.user }).populate({ path: "user", select: "name" }).select("uniqueMechanicId").lean();
+            const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: withdraw.user });
             const serviceCount = mechanicServiceRate?.services.length;
             return {
                 ...withdraw,
@@ -38,3 +39,12 @@ export const getAllWithdrawRequestsFromDB = async () => {
     );
     return mechanicWithdrawWithServiceCount;
 };
+
+export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
+    const mechanic = await UserModel.findById(mechanicId);
+    if (!mechanic) {
+        throw new Error("Mechanic not found");
+    }
+    const withdrawRequests = await Withdraw.find({user : mechanicId});
+    return withdrawRequests;
+}

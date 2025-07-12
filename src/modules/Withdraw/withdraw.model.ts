@@ -6,7 +6,7 @@ import { IWithdraw } from './withdraw.interface';
 const WithdrawSchema = new Schema<IWithdraw>({
     status: {
         type: String,
-        enum: ['processing', 'completed'],
+        enum: ['processing', 'completed' ,"withdrawn"],
         required: true,
         default : 'processing'
     },

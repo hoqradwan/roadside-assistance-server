@@ -7,7 +7,7 @@
     "start:prod": "node ./dist/server.js",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "git": "git add . && git commit -m \"withdraw request\" && git push && git push personal main",
+    "git": "git add . && git commit -m \"$npm_config_msg\" && git push && git push mygit main",
     "lint": "eslint src --ignore-path .eslintignore --ext .ts",
     "lint:fix": "npx eslint src --fix",
     "prettier": "prettier --ignore-path .gitignore --write \"./src/**/*.+(js|ts|json)\"",

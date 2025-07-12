@@ -111,12 +111,12 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
     if (appService.type === "number") {
       total += appService.amount;
     } else if (appService.type === "percentage") {
-      total += (total * appService.amount) / 100;
+      total += (total + appService.amount) / 100;
     }
   }
 
   // 8. Validate minimum order amount if needed
-  if (total <= 0) {
+  if (total < 0) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid order total");
   }
   let locationData = {
@@ -680,7 +680,7 @@ export const cancelOrderFromDB = async (orderId: string, userId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  const order = await Order.findOne({ _id: orderId, user: userId });
+  const order = await Order.findOne({ _id: orderId, mechanic: userId });
   if (!order) {
     throw new AppError(httpStatus.NOT_FOUND, "Order not found or does not belong to this user");
   }

@@ -10,7 +10,7 @@ router.get('/:status',adminMiddleware("admin","mechanic","user"), getOrdersBySta
 router.get('/all',adminMiddleware("admin"), getOrders)
 router.post('/', adminMiddleware("user"), createOrder);
 router.post('/accept/:orderId', adminMiddleware("mechanic"), acceptOrder);
-router.post('/cancel/:orderId', adminMiddleware("user"), cancelOrder);
+router.post('/cancel/:orderId', adminMiddleware("mechanic"), cancelOrder);
 router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
 router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
 router.post('/markComplete/:orderId', adminMiddleware("mechanic"), markAsComplete);

@@ -2,14 +2,14 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import httpStatus from "http-status";
-import { JWT_SECRET_KEY, STRIPE_SECRET_KEY } from "../../config";
+import { JWT_SECRET_KEY } from "../../config";
 import catchAsync from "../../utils/catchAsync";
 import sendError from "../../utils/sendError";
 import { UserModel } from "../user/user.model";
 import sendResponse from "../../utils/sendResponse";
 import { PaymentModel } from "./payment.model";
 import { getAllPaymentFromDB } from "./payment.service";
-import { format, formatDate } from "date-fns";
+import { format } from "date-fns";
 
 export const paymentCreate = catchAsync(async (req: Request, res: Response) => {
   try {

@@ -5,7 +5,7 @@ import { adminMiddleware } from '../../middlewares/auth';
 const router = Router();
 
 // Create a new order
-router.get('/user',adminMiddleware("admin","user"), getOrdersByUser);
+router.get('/user',adminMiddleware("admin","user","mechanic"), getOrdersByUser);
 router.get('/:status',adminMiddleware("admin","mechanic","user"), getOrdersByStatus);
 router.get('/all',adminMiddleware("admin"), getOrders)
 router.post('/', adminMiddleware("user"), createOrder);

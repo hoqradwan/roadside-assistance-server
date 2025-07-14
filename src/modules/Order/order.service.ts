@@ -183,70 +183,134 @@ export const acceptOrderIntoDB = async (orderId: string, userId: string) => {
   return result;
 }
 
-export const getOrdersByUserFromDB = async (userId: string) => {
+export const getOrdersByUserFromDB = async (userId: string, role: string) => {
   try {
-    // Fetch all orders for the user and populate required fields
-    const userOrders = await Order.find({ user: userId })
-      .select("status total mechanic services")
-      .populate({ path: 'mechanic', select: "name image email" })
-      .populate({ path: 'services', model: 'Service', select: 'name' });
+    let userOrders;
+    if (role === 'user') {
+      userOrders = await Order.find({ user: userId })
+        .select("status total mechanic services")
+        .populate({ path: 'mechanic', select: "name image email" })
+        .populate({ path: 'services', model: 'Service', select: 'name' });
 
-    let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
-    if (!appService) {
-      throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
-    }
+      let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
+      if (!appService) {
+        throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+      }
+      const serviceRates = await Promise.all(
+        userOrders.map(async (order) => {
+          const rating = await Mechanic.findOne({ user: order.mechanic }).select("rating");
 
-    // Fetch service rates for each order
-    const serviceRates = await Promise.all(
-      userOrders.map(async (order) => {
-        const rating = await Mechanic.findOne({ user: order.mechanic }).select("rating");
+          // Fetch the mechanic's service rates based on the mechanic in the order
+          const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
+            .populate({
+              path: "services.service",
+              model: "Service",
+              select: "name"
+            });
 
-        // Fetch the mechanic's service rates based on the mechanic in the order
-        const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
-          .populate({
-            path: "services.service",
-            model: "Service",
-            select: "name"
-          });
-
-        if (!mechanicServiceRate) {
-          return { ...order.toObject(), serviceRates: [] };
-        }
-
-        // Map the services in the order to get name and price
-        const servicesWithRates = order.services.map(orderService => {
-          // Find matching service rate from mechanic's rates
-          const matchedServiceRate = mechanicServiceRate.services.find(serviceRate =>
-            serviceRate.service._id.toString() === (orderService as any)._id.toString()
-          );
-
-          if (matchedServiceRate) {
-            return {
-              name: (orderService as any).name,    // Get name from order's populated service
-              price: matchedServiceRate.price,     // Get price from service rate
-              _id: matchedServiceRate._id
-            };
+          if (!mechanicServiceRate) {
+            return { ...order.toObject(), serviceRates: [] };
           }
 
-          // If no matching rate found, still return the service name with null price
+          // Map the services in the order to get name and price
+          const servicesWithRates = order.services.map(orderService => {
+            // Find matching service rate from mechanic's rates
+            const matchedServiceRate = mechanicServiceRate.services.find(serviceRate =>
+              serviceRate.service._id.toString() === (orderService as any)._id.toString()
+            );
+
+            if (matchedServiceRate) {
+              return {
+                name: (orderService as any).name,    // Get name from order's populated service
+                price: matchedServiceRate.price,     // Get price from service rate
+                _id: matchedServiceRate._id
+              };
+            }
+
+            // If no matching rate found, still return the service name with null price
+            return {
+              name: (orderService as any).name,
+              price: null,
+              _id: (orderService as any)._id
+            };
+          });
+
+          // Combine the order data with the service rates
           return {
-            name: (orderService as any).name,
-            price: null,
-            _id: (orderService as any)._id
+            ...order.toObject(),
+            serviceRates: servicesWithRates,
+            appService: appService.amount,
+            rating: rating ? rating.rating : null
           };
-        });
+        })
+      );
 
-        // Combine the order data with the service rates
-        return {
-          ...order.toObject(),
-          serviceRates: servicesWithRates,
-          appService: appService.amount,
-          rating: rating ? rating.rating : null
-        };
-      })
-    );
+      return serviceRates;
+    } else if (role === 'mechanic') {
+      userOrders = await Order.find({ mechanic: userId })
+        .select("status total mechanic services")
+        .populate({ path: 'mechanic', select: "name image email" })
+        .populate({ path: 'services', model: 'Service', select: 'name' });
 
-    return serviceRates;
+      let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
+      if (!appService) {
+        throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+      }
+      const serviceRates = await Promise.all(
+        userOrders.map(async (order) => {
+          const rating = await Mechanic.findOne({ user: order.mechanic }).select("rating");
+
+          // Fetch the mechanic's service rates based on the mechanic in the order
+          const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
+            .populate({
+              path: "services.service",
+              model: "Service",
+              select: "name"
+            });
+
+          if (!mechanicServiceRate) {
+            return { ...order.toObject(), serviceRates: [] };
+          }
+
+          // Map the services in the order to get name and price
+          const servicesWithRates = order.services.map(orderService => {
+            // Find matching service rate from mechanic's rates
+            const matchedServiceRate = mechanicServiceRate.services.find(serviceRate =>
+              serviceRate.service._id.toString() === (orderService as any)._id.toString()
+            );
+
+            if (matchedServiceRate) {
+              return {
+                name: (orderService as any).name,    // Get name from order's populated service
+                price: matchedServiceRate.price,     // Get price from service rate
+                _id: matchedServiceRate._id
+              };
+            }
+
+            // If no matching rate found, still return the service name with null price
+            return {
+              name: (orderService as any).name,
+              price: null,
+              _id: (orderService as any)._id
+            };
+          });
+
+          // Combine the order data with the service rates
+          return {
+            ...order.toObject(),
+            serviceRates: servicesWithRates,
+            appService: appService.amount,
+            rating: rating ? rating.rating : null
+          };
+        })
+      );
+
+      return serviceRates;
+    }
+
+
+    // Fetch service rates for each order
+
   } catch (error) {
     console.error("Error fetching orders or service rates:", error);
     throw new Error("An error occurred while fetching the order data.");

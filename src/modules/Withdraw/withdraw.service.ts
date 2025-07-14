@@ -46,5 +46,11 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
         throw new Error("Mechanic not found");
     }
     const withdrawRequests = await Withdraw.find({user : mechanicId});
-    return withdrawRequests;
+   const withdrawRequestsWIthName = withdrawRequests.map((withdraw)=>{
+        return {
+            ...withdraw.toObject(),
+            name : "Transaction Amount",
+        }
+    })
+    return withdrawRequestsWIthName;
 }

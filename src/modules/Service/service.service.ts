@@ -11,7 +11,15 @@ export const createServiceIntoDB = async (service: any, image: any) => {
 
 export const getAllServicesFromDB = async () => {
     const result = await Service.find();
-    return result;
+  const serviceWithPrice =   result.map(service =>{
+        return {
+            _id: service._id,
+            name : service.name,
+            image : (service as any).image ? (service as any).image : null,
+            price : 0,
+        }
+    })
+    return serviceWithPrice;
 }
 export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceId: string) => {
     // Remove the serviceId from the services array of the specified mechanic

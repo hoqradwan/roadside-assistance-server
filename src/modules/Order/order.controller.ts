@@ -42,7 +42,7 @@ export const getOrders = catchAsync(async (req: Request, res: Response) => {
 })
 export const getOrdersByUser = catchAsync(async (req: CustomRequest, res: Response) => {
   const { id: userId, role } = req.user;
-  const result = await getOrdersByUserFromDB(userId,role);
+  const result = await getOrdersByUserFromDB(userId, role);
   sendResponse(res, {
     statusCode: 200,
     success: true,

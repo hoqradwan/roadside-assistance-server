@@ -21,7 +21,7 @@ export const getAllServicesFromDB = async () => {
     })
     return serviceWithPrice;
 }
-export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceId: string) => {
+export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceData: any) => {
     // Remove the serviceId from the services array of the specified mechanic
     const mechanic = await Mechanic.findOne({ user: mechanicId });
     if (!mechanic) {
@@ -33,7 +33,7 @@ export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceId: 
         throw new Error("Mechanic service rate not found");
     }
     const serviceAlreadyExists = mechanicServiceRate.services.some(
-        (s: any) => s.service.toString() === serviceId
+        (s: any) => s.service.toString() === serviceData.serviceId
     );
     if (serviceAlreadyExists) {
         throw new Error("Service already added to the mechanic");
@@ -41,7 +41,7 @@ export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceId: 
        
     const addedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
         { mechanic: mechanicId },
-        { $push: { services: { service: serviceId } } },
+        { $push: { services: { service: serviceData.serviceId, price:serviceData.price } } },
         { new: true } // Return the updated document
     );
 

@@ -1,6 +1,7 @@
 import Mechanic from "../Mechanic/mechanic.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 import Order from "../Order/order.model";
+import PaymentMethod from "../PaymentMethod/paymentMethod.model";
 import { UserModel } from "../user/user.model";
 import Wallet from "../Wallet/wallet.model";
 import Withdraw from "./withdraw.model";
@@ -30,10 +31,13 @@ export const getAllWithdrawRequestsFromDB = async () => {
         mechanicWithdraw.map(async (withdraw) => {
             const mechanic = await Mechanic.findOne({ user: withdraw.user }).populate({ path: "user", select: "name" }).select("uniqueMechanicId").lean();
             const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: withdraw.user });
+            const mechanicPaymentInfo = await PaymentMethod.findOne({ user: withdraw.user })
+            console.log(mechanicPaymentInfo)
             const serviceCount = mechanicServiceRate?.services.length;
             return {
                 ...withdraw,
                 mechanic,
+                mechanicPaymentInfo,
                 serviceCount
             };
         })

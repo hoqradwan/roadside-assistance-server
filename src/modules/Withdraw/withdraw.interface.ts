@@ -1,7 +1,7 @@
 import { Schema } from "mongoose";
 
 export interface IWithdraw  {
-    status: 'processing' | 'completed';
+    status: 'withdraw';
     amount: number;
     user: Schema.Types.ObjectId;
 }

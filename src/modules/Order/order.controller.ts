@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { acceptOrderIntoDB, cancelOrderFromDB, createOrderIntoDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersByUserFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
+import { acceptOrderIntoDB, cancelOrderFromDB, createOrderIntoDB, getOrderByIdFromDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersByUserFromDB, getOrdersFromDB, getSingleOrderFromDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: CustomRequest, res: Response) => {
@@ -57,6 +57,15 @@ export const getSingleOrder = catchAsync(async (req: CustomRequest, res: Respons
     statusCode: 200,
     success: true,
     message: "Order fetched successfully",
+    data: result,
+  });
+})
+export const getOrderById = catchAsync(async (req: CustomRequest, res: Response) => {
+  const result = await getOrderByIdFromDB(req.params.orderId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order for admin fetched successfully",
     data: result,
   });
 })

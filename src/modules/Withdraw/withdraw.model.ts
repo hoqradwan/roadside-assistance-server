@@ -2,13 +2,12 @@ import { Schema, model, Document } from 'mongoose';
 import { IWithdraw } from './withdraw.interface';
 
 
-
 const WithdrawSchema = new Schema<IWithdraw>({
     status: {
         type: String,
-        enum: ['processing', 'completed' ,"withdrawn"],
+        enum: ["withdraw"],
         required: true,
-        default : 'processing'
+        default : 'withdraw'
     },
     amount: {
         type: Number,

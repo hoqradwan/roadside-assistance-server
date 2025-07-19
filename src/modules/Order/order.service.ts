@@ -306,6 +306,65 @@ export const getOrdersByUserFromDB = async (userId: string, role: string) => {
       );
 
       return serviceRates;
+    }else if(role === "admin"){
+        userOrders = await Order.find({})
+        .populate({ path: 'mechanic', select: "name image email" })
+        .populate({ path: 'services', model: 'Service', select: 'name' });
+
+      let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
+      if (!appService) {
+        throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+      }
+      const serviceRates = await Promise.all(
+        userOrders.map(async (order) => {
+          const rating = await Mechanic.findOne({ user: order.mechanic }).select("rating");
+
+          // Fetch the mechanic's service rates based on the mechanic in the order
+          const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
+            .populate({
+              path: "services.service",
+              model: "Service",
+              select: "name"
+            });
+
+          if (!mechanicServiceRate) {
+            return { ...order.toObject(), serviceRates: [] };
+          }
+
+          // Map the services in the order to get name and price
+          const servicesWithRates = order.services.map(orderService => {
+            // Find matching service rate from mechanic's rates
+            const matchedServiceRate = mechanicServiceRate.services.find(serviceRate =>
+              serviceRate.service._id.toString() === (orderService as any)._id.toString()
+            );
+
+            if (matchedServiceRate) {
+              return {
+                name: (orderService as any).name,    // Get name from order's populated service
+                price: matchedServiceRate.price,     // Get price from service rate
+                _id: matchedServiceRate._id
+              };
+            }
+
+            // If no matching rate found, still return the service name with null price
+            return {
+              name: (orderService as any).name,
+              price: null,
+              _id: (orderService as any)._id
+            };
+          });
+
+          // Combine the order data with the service rates
+          return {
+            ...order.toObject(),
+            serviceRates: servicesWithRates,
+            appService: appService.amount,
+            rating: rating ? rating.rating : null
+          };
+        })
+      );
+
+      return serviceRates;
     }
 
 
@@ -758,7 +817,15 @@ export const cancelOrderFromDB = async (orderId: string, userId: string) => {
   await order.save();
   return order;
 }
+export const getOrderByIdFromDB = async(orderId : string, )=>{
+  const order = await Order.findById(orderId)
+    .populate({ path: 'mechanic', select: "name image email" })
+    .populate('vehicle')
+    .populate({ path: 'user', select: "name image email phone" })
+    .populate({ path: 'services', model: 'Service', select: 'name' });
 
+    return order;
+}
 
 // export const verifyOrderCompletionFromUserEndIntoDB = async (orderId: string, userId: string, code: string) => {
 //     const order = await Order.findOne({ _id: orderId });

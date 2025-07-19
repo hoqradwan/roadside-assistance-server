@@ -4,23 +4,27 @@ import Service, { IService } from "./service.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 
 export const createServiceIntoDB = async (service: any, image: any) => {
-   
     const result = await Service.create({ name: service.name, image });
     return result;
 };
 
 export const getAllServicesFromDB = async () => {
-    const result = await Service.find();
-  const serviceWithPrice =   result.map(service =>{
+    // Select only necessary fields from the database to minimize data transfer
+    const result = await Service.find().select('_id name image');
+
+    const serviceWithPrice = result.map(doc => {
+        const { _id, name, image } = doc.toObject() as { _id: any; name: string; image?: string };
         return {
-            _id: service._id,
-            name : service.name,
-            image : (service as any).image ? (service as any).image : null,
-            price : 0,
-        }
-    })
+            _id,
+            name,
+            image: image || null, // Use null if image is not defined
+            price: 0, // Price is always zero, no need to assign in map unless it changes
+        };
+    });
+
     return serviceWithPrice;
-}
+};
+
 export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceData: any) => {
     // Remove the serviceId from the services array of the specified mechanic
     const mechanic = await Mechanic.findOne({ user: mechanicId });

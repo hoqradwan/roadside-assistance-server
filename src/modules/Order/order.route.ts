@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOrder, getOrders, getSingleOrder, getOrdersByStatus ,getOrdersByMechanic, markAsComplete, getOrdersByUser, verifyOrderCompletionFromUserEnd, cancelOrder, acceptOrder} from './order.controller';
+import { createOrder, getOrders, getSingleOrder, getOrdersByStatus ,getOrdersByMechanic, markAsComplete, getOrdersByUser, verifyOrderCompletionFromUserEnd, cancelOrder, acceptOrder, getOrderById} from './order.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
@@ -12,6 +12,7 @@ router.post('/', adminMiddleware("user"), createOrder);
 router.post('/accept/:orderId', adminMiddleware("mechanic"), acceptOrder);
 router.post('/cancel/:orderId', adminMiddleware("mechanic"), cancelOrder);
 router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
+router.get('/admin/:orderId', adminMiddleware("admin"),  getOrderById);
 router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
 router.post('/markComplete/:orderId', adminMiddleware("mechanic"), markAsComplete);
 router.post('/verifyOrderCompletion/:orderId', adminMiddleware("user"), verifyOrderCompletionFromUserEnd);

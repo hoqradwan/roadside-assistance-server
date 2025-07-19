@@ -181,8 +181,7 @@ export const getAllTestMechanics = catchAsync(async (req: CustomRequest, res) =>
         cleanedServiceName === 'null') {
         cleanedServiceName = undefined;
     }
-    console.log("Hiting")
-    console.log("cleanedServiceName", cleanedServiceName);
+   
     // Call the service function to get the mechanics with pagination
     const result = await getAllTestMechanicsFromDB({
         currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number

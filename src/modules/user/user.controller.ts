@@ -310,7 +310,6 @@ export const forgotPassword = catchAsync(
 
 export const resetPassword = catchAsync(async (req: CustomRequest, res: Response) => {
   const { email,role } = req.user;
-  console.log(email,role)
   // const email = req.query.email as string;
 
   const { newPassword, confirmPassword } = req.body;

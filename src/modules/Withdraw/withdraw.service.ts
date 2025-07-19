@@ -32,7 +32,6 @@ export const getAllWithdrawRequestsFromDB = async () => {
             const mechanic = await Mechanic.findOne({ user: withdraw.user }).populate({ path: "user", select: "name" }).select("uniqueMechanicId").lean();
             const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: withdraw.user });
             const mechanicPaymentInfo = await PaymentMethod.findOne({ user: withdraw.user })
-            console.log(mechanicPaymentInfo)
             const serviceCount = mechanicServiceRate?.services.length;
             return {
                 ...withdraw,
@@ -75,11 +74,7 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
         const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
             .populate("services.service")
             .lean();
-        // Better debugging
-        // console.log("=== Debug Info ===");
-        // console.log("Order ID:", order._id);
-        // console.log("Mechanic ID:", order.mechanic);
-        // console.log("Order services:", order.services);
+      
         
         if (mechanicServiceRate) {
             // console.log("Found mechanic service rate with", mechanicServiceRate.services?.length, "services");
@@ -92,6 +87,7 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
             //         price: serviceRate.price
             //     });
             // });
+
 
             // Map each service in the order to create individual entries
             order.services.forEach(orderServiceId => {

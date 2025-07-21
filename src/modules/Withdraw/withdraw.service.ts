@@ -73,12 +73,8 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
         // Use lean() for better performance and cleaner objects
         const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
             .populate("services.service")
-            .lean();
-      
-        
         if (mechanicServiceRate) {
             // console.log("Found mechanic service rate with", mechanicServiceRate.services?.length, "services");
-            
             // Debug each service
             // mechanicServiceRate.services?.forEach((serviceRate: any, index: number) => {
             //     console.log(`Service ${index}:`, {
@@ -91,10 +87,10 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
 
             // Map each service in the order to create individual entries
             order.services.forEach(orderServiceId => {
-                const modifiedMechanicServiceRate = mechanicServiceRate
                 const matchedServiceRate = mechanicServiceRate.services?.find((serviceRate: any) =>
                     serviceRate.service._id.toString() === orderServiceId.toString()
                 );
+                console.log(matchedServiceRate, orderServiceId)
                 if (matchedServiceRate) {
                     console.log("Matched service:", {
                         orderId: order._id,

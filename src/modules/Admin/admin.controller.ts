@@ -1,7 +1,7 @@
 import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
-import { acceptWithdrawRequestIntoDB, getAdminWalletOverviewFromDB, getOverviewFromDB } from "./admin.service";
+import { acceptWithdrawRequestIntoDB, getAdminWalletOverviewFromDB, getEarningsGraphChartFromDB, getOverviewFromDB } from "./admin.service";
 
 export const getOverview = catchAsync(async (req, res) => {
     const result = await getOverviewFromDB();
@@ -12,8 +12,8 @@ export const getOverview = catchAsync(async (req, res) => {
         data: result
     });
 })
-export const getAdminWalletOverview = catchAsync(async (req , res) => { 
-   
+export const getAdminWalletOverview = catchAsync(async (req, res) => {
+
     const result = await getAdminWalletOverviewFromDB();
     sendResponse(res, {
         statusCode: 200,
@@ -23,12 +23,24 @@ export const getAdminWalletOverview = catchAsync(async (req , res) => {
     });
 })
 export const acceptWithdrawRequest = catchAsync(async (req, res) => {
-    const {mechanicId} = req.params;
+    const { mechanicId } = req.params;
     const result = await acceptWithdrawRequestIntoDB(mechanicId);
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Withdraw request accepted successfully",
+        data: result
+    });
+})
+export const getEarningChart = catchAsync(async (req, res) => {
+    const { period = 'monthly', year, month } = req.query;
+
+    // Call the service function to get the earnings chart data
+    const result = await getEarningsGraphChartFromDB(period as any, Number(year), Number(month));
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Earning chart retrieved successfully",
         data: result
     });
 })

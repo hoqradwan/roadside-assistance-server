@@ -3,6 +3,7 @@ import { Document, Types } from "mongoose";
 export type IPayment = {
   transactionId: string;
   userId: Types.ObjectId;
+  orderId: Types.ObjectId;
   amount: number;
   paymentData: object;
   status: "completed" | "pending" | "failed";

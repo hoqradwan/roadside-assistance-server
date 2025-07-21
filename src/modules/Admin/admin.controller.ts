@@ -13,7 +13,6 @@ export const getOverview = catchAsync(async (req, res) => {
     });
 })
 export const getAdminWalletOverview = catchAsync(async (req, res) => {
-
     const result = await getAdminWalletOverviewFromDB();
     sendResponse(res, {
         statusCode: 200,

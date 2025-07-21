@@ -10,7 +10,7 @@ const PendingUserSchema = new Schema<IPendingUser>(
     confirmPassword: { type: String, required: true, trim: true },
     role: {
       type: String,
-      enum: ["user", "admin","mechanic"],
+      enum: ["user", "admin", "mechanic"],
     },
   },
   { timestamps: true },
@@ -30,6 +30,8 @@ const UserSchema = new Schema<IUser>(
     phone: { type: String, trim: true },
     address: { type: String, trim: true },
     image: { type: String, default: "" },
+    bio: { type: String, default: "" },
+    experience: { type: Number, default: 0 },
     role: {
       type: String,
       enum: ["admin", "user", "mechanic"],

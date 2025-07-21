@@ -166,37 +166,37 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
       message: "Wrong password!",
     });
   }
-  if(user.role === "mechanic" ) {
+  if (user.role === "mechanic") {
     const mechanicExist = await Mechanic.findOne({ user: user._id });
-    if(!mechanicExist) {
+    if (!mechanicExist) {
       await Mechanic.create({
-        user : user._id,
+        user: user._id,
         services: [],
         isAvailable: true,
-        rating : 0,
-        experience : 0,
+        rating: 0,
+        experience: 0,
         description: "",
-        serviceCount : 0,
-        
+        serviceCount: 0,
+
       })
     }
-  const isMechanicServiceRateExist = await MechanicServiceRateModel.findOne({
+    const isMechanicServiceRateExist = await MechanicServiceRateModel.findOne({
       mechanic: user._id,
     });
     if (!isMechanicServiceRateExist) {
       const allServices = await Service.find({});
       const serviceIdsWithPrice = allServices.map((service) => {
-          return { service: service._id, price: 0 };
+        return { service: service._id, price: 0 };
       }
       );
 
       await MechanicServiceRateModel.create({
-          mechanic: user._id,
-          services: serviceIdsWithPrice,
+        mechanic: user._id,
+        services: serviceIdsWithPrice,
       });
     }
   }
-  
+
   const token = generateToken({
     id: user._id,
     name: user.name,
@@ -309,7 +309,7 @@ export const forgotPassword = catchAsync(
 );
 
 export const resetPassword = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { email,role } = req.user;
+  const { email, role } = req.user;
   // const email = req.query.email as string;
 
   const { newPassword, confirmPassword } = req.body;
@@ -662,25 +662,25 @@ export const getAllMechanics = catchAsync(async (req: CustomRequest, res: Respon
     },
   });
 });
-export const getSingleUser = catchAsync(async (req :CustomRequest, res : Response) => {
+export const getSingleUser = catchAsync(async (req: CustomRequest, res: Response) => {
   const { userId } = req.params;
 
-    // Validate userId
-    if (!isValidObjectId(userId)) {
-        return sendResponse(res, {
-            statusCode: httpStatus.BAD_REQUEST,
-            success: false,
-            message: 'Invalid user ID format',
-            data: null,
-        });
-    } 
+  // Validate userId
+  if (!isValidObjectId(userId)) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Invalid user ID format',
+      data: null,
+    });
+  }
   const result = await UserModel.findById(userId).select("name email uniqueUserId createdAt role phone")
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "User retrieved successfully",
-        data: result
-    })
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User retrieved successfully",
+    data: result
+  })
 })
 export const BlockUser = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.body;
@@ -1067,18 +1067,18 @@ export const getNearbyMechanics = catchAsync(async (req: CustomRequest, res: Res
   });
 });
 
-export const getProfile = catchAsync(async(req:CustomRequest,res:Response)=>{
+export const getProfile = catchAsync(async (req: CustomRequest, res: Response) => {
   const { id: userId } = req.user;
   const user = await UserModel.findById(userId).select("-password -__v -createdAt -updatedAt -cuponCode -otp -isDeleted -status -isActive -isDeleted -expiryDate -activeDate -uniqueUserId");
-  if(!user){
+  if (!user) {
     throw new Error("User not found");
   }
   const notificationCount = await NotificationModel.countDocuments({ user: userId, isRead: false });
-    sendResponse(res, {
+  sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "profile information retrieved successfully",
-    data: {user, notificationCount : 5},
+    data: { user, notificationCount: 5 },
     pagination: undefined,
   });
 })
@@ -1086,9 +1086,7 @@ export const getProfile = catchAsync(async(req:CustomRequest,res:Response)=>{
 
 export const updateProfile = catchAsync(async (req: CustomRequest, res: Response) => {
   const { id: userId } = req.user;
-  
-  // Logging the incoming data to verify
-  console.log(req.body.data, req.body.driverLicense, req.body.image, "req.body.data");
+
 
   // Parse the data sent as JSON in req.body
   const formattedData = JSON.parse(req.body.data);
@@ -1096,13 +1094,13 @@ export const updateProfile = catchAsync(async (req: CustomRequest, res: Response
   // Get the profile image and driver license from the files (S3 URLs)
   const image =
     req.files &&
-    typeof req.files === "object" &&
-    "image" in req.files &&
-    Array.isArray((req.files as { [fieldname: string]: Express.Multer.File[] })["image"])
+      typeof req.files === "object" &&
+      "image" in req.files &&
+      Array.isArray((req.files as { [fieldname: string]: Express.Multer.File[] })["image"])
       ? ((req.files as { [fieldname: string]: (Express.Multer.File & { location?: string })[] })["image"][0].location ?? null)
       : null;
 
-  
+
   // Pass the parsed data and the file URLs to the service function
   const result = await updateProfileIntoDB(userId, formattedData, image);
 

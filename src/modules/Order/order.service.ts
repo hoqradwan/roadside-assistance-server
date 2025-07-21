@@ -15,6 +15,7 @@ import { NotificationModel } from "../notifications/notification.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 import mongoose from "mongoose";
 import { calculateDistance } from "./order.utils";
+import { IPayment } from "../payment/payment.interface";
 
 export const createOrderIntoDB = async (userId: string, orderData: any) => {
   // 1. Validate user exists
@@ -159,7 +160,6 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
 
     // You might want to update mechanic's order count or other related operations here
     // await Mechanic.findByIdAndUpdate(orderData.mechanic, { $inc: { totalOrders: 1 } }, { session });
-
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -170,6 +170,65 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
 
   return order[0];
 };
+
+// export const makePaymentIntoDB = async (userId: string, orderId: string, paymentData: IPayment, // Added payment data
+// ) => {
+//     const session = await mongoose.startSession();
+//     session.startTransaction();
+//     try {
+//         // Fetch the user
+//         const user = await UserModel.findById(userId).session(session);
+//         if (!user) {
+//             throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+//         }
+
+//         // Fetch the order
+//         const order = await Order.findById(orderId).session(session);
+//         if (!order) {
+//             throw new AppError(httpStatus.BAD_REQUEST, "order not found");
+//         }
+//         payment = {
+//                 transactionId: paymentData.transactionId,
+//                 orderId, 
+//                 user: userId,
+//                 amount: order.total, // Use the booking's total price
+//                 paymentDate: new Date(), // Use the current date for payment date
+//                 status: 'completed', // Assuming the payment is successful
+//                 isDeleted: false,
+//             };
+
+//             // Create the payment record
+//             const createdPayment = await PaymentModel.create([payment], { session });
+//             if (!createdPayment || createdPayment.length === 0) {
+//                 throw new Error('Payment creation failed');
+//             }
+//             const payment = createdPayment[0];
+//             const adminUser = await UserModel.findOne({role:"admin"}).session(session);
+//             // Update the admin's total balance in Earning
+//             await Wallet.findOneAndUpdate(
+//                 { user: adminUser._id },
+//                 { $inc: { totalBalance: order.total } },
+//                 { new: true, upsert: true, session }
+//             );
+
+
+//         // Commit the transaction
+//         await session.commitTransaction();
+//         session.endSession();
+
+//         // Return the payment and booking information
+//         return {
+//             payment: payment,
+//             order: order,
+//         };
+//     } catch (error: any) {
+//         // Abort the transaction in case of an error
+//         await session.abortTransaction();
+//         session.endSession();
+//         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, `Transaction failed: ${error}`);
+//     }
+// };
+
 
 export const acceptOrderIntoDB = async (orderId: string, userId: string) => {
   const orderExists = await Order.findById(orderId);
@@ -306,8 +365,8 @@ export const getOrdersByUserFromDB = async (userId: string, role: string) => {
       );
 
       return serviceRates;
-    }else if(role === "admin"){
-        userOrders = await Order.find({})
+    } else if (role === "admin") {
+      userOrders = await Order.find({})
         .populate({ path: 'mechanic', select: "name image email" })
         .populate({ path: 'services', model: 'Service', select: 'name' });
 
@@ -817,14 +876,14 @@ export const cancelOrderFromDB = async (orderId: string, userId: string) => {
   await order.save();
   return order;
 }
-export const getOrderByIdFromDB = async(orderId : string, )=>{
+export const getOrderByIdFromDB = async (orderId: string,) => {
   const order = await Order.findById(orderId)
     .populate({ path: 'mechanic', select: "name image email" })
     .populate('vehicle')
     .populate({ path: 'user', select: "name image email phone" })
     .populate({ path: 'services', model: 'Service', select: 'name' });
 
-    return order;
+  return order;
 }
 
 // export const verifyOrderCompletionFromUserEndIntoDB = async (orderId: string, userId: string, code: string) => {

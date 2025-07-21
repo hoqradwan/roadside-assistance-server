@@ -62,10 +62,10 @@ export const getUserList = async (
   //const query: any = { _id: { $ne: adminId } };
 
   const query: any = {
-    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } },{role: { $ne: "mechanic" }}],
+    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } }, { role: { $ne: "mechanic" } }],
   };
 
- 
+
 
   if (name) {
     query.name = { $regex: name, $options: "i" };
@@ -98,10 +98,10 @@ export const getMechanicList = async (
   //const query: any = { _id: { $ne: adminId } };
 
   const query: any = {
-    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } },{role: { $ne: "user" }}],
+    $and: [{ isDeleted: { $ne: true } }, { _id: { $ne: adminId } }, { role: { $ne: "user" } }],
   };
 
- 
+
 
   if (name) {
     query.name = { $regex: name, $options: "i" };
@@ -300,6 +300,8 @@ export const updateProfileIntoDB = async (
   const updateData: any = {
     name: formattedData.name || user.name,
     phone: formattedData.phone || user.phone,
+    bio: formattedData.bio || user.bio,
+    experience: formattedData.experience || user.experience,
   };
 
   // Only update profileImage if it's provided

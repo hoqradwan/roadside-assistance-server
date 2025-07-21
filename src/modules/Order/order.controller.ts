@@ -15,6 +15,19 @@ export const createOrder = catchAsync(async (req: CustomRequest, res: Response) 
     data: result,
   });
 })
+// export const makePayment = catchAsync(async (req: CustomRequest, res: Response) => {
+//     const { id: userId } = req.user; // Extract user ID from the request
+//     const orderId = req.params.orderId; // Extract booking ID from the request parameters
+//     // solved after receiving req.body.data and then formatting it. then accessing the objects inside data object bookingData paymentData
+//    const paymentData = req.body; // Extract payment data from the request body
+//     // const result = await makePaymentIntoDB(userId,orderId,paymentData); // Call service to add booking into DB
+//     sendResponse(res, {
+//         statusCode: 200,
+//         success: true,
+//         message: "Payment completed successfully",
+//         data: result, // Replace with actual booking data if available
+//     });
+// })
 export const markAsComplete = catchAsync(async (req: CustomRequest, res: Response) => {
   const { orderId } = req.params;
   const { id: mechanicId } = req.user;

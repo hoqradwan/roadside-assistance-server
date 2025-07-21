@@ -8,6 +8,11 @@ const paymentSchema: Schema<IPayment> = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Order"
+    },
     userId: {
       type: Schema.Types.ObjectId,
       required: true,

@@ -13,9 +13,10 @@ export type IUser = {
   email: string;
   password?: string;
   confirmPassword?: string;
+  experience?: number;
   phone?: string;
   address?: string;
- image?: string;
+  image?: string;
   role: "admin" | "user" | "mechanic";
   status: "active" | "blocked";
   age: string;
@@ -23,18 +24,18 @@ export type IUser = {
   about: string;
   bio: string;
   cuponCode: string;
-  serviceRadius : number;
-  location :{
-    
-    type : string;
-    coordinates : [number,number];
+  serviceRadius: number;
+  location: {
+
+    type: string;
+    coordinates: [number, number];
   },
-  isActive : boolean;
+  isActive: boolean;
   expiryDate: Date | null;
   activeDate: Date | null;
   isDeleted: boolean;
   uniqueUserId: string;
-  
+
 } & Document;
 
 export type IOTP = {

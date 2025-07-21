@@ -6,18 +6,22 @@ const mechanicServiceRateSchema = new Schema({
         ref: "User",
         required: true,
     },
-    services :[{
-        service : {
+    services: [{
+        service: {
             type: Schema.Types.ObjectId,
             ref: "Service",
             required: true,
         },
-        price :{
+        price: {
             type: Number,
             required: true,
             default: 0
         },
-       }
+        isDeleted: {
+            type: Boolean,
+            default: false
+        }
+    }
     ]
 })
 

@@ -170,8 +170,8 @@ export const sendOTPEmail = async (
   // English and Spanish email content based on the lang parameter
   const emailContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0f0f0; padding: 20px;">
-      <h1 style="text-align: center; color: #452778; font-family: 'Times New Roman', Times, serif;">
-        Like<span style="color:black; font-size: 0.9em;">Mine</span>
+      <h1 style="text-align: center; color: #006bff; font-family: 'Times New Roman', Times, serif;">
+        Beep<span style="color:black; font-size: 0.9em;">Roadside</span>
       </h1>
       <div style="background-color: white; padding: 20px; border-radius: 5px;">
         <h2 style="color:#d3b06c">Hello!</h2>
@@ -188,7 +188,7 @@ export const sendOTPEmail = async (
   `;
 
   const mailOptions = {
-    from: "khansourav58@gmail.com",
+    from: "hoqradwan@gmail.com",
     to: email,
     subject: "Registration OTP",
     html: emailContent,
@@ -308,8 +308,6 @@ export const updateProfileIntoDB = async (
   if (image) {
     updateData.image = image;
   }
-
-
 
   // Update the user in the database
   const updatedUser = await UserModel.findByIdAndUpdate(userId, updateData, { new: true });

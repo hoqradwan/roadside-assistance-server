@@ -42,10 +42,10 @@ export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceData
     if (serviceAlreadyExists) {
         throw new Error("Service already added to the mechanic");
     }
-       
+
     const addedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
         { mechanic: mechanicId },
-        { $push: { services: { service: serviceData.serviceId, price:serviceData.price } } },
+        { $push: { services: { service: serviceData.serviceId, price: serviceData.price, isDeleted: false } } },
         { new: true } // Return the updated document
     );
 
@@ -59,8 +59,8 @@ export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceData
 export const deleteServiceByMechanicFromDB = async (mechanicId: string, serviceId: string) => {
     // Remove the serviceId from the services array of the specified mechanic
     const mechanicService = await MechanicServiceRateModel.findOneAndUpdate(
-        { mechanic: mechanicId },
-        { $pull: { services: { service: serviceId } } },
+        { mechanic: mechanicId, "services.service": serviceId },
+        { $set: { "services.$.isDeleted": true } },
         { new: true }
     );
 

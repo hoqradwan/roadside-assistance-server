@@ -24,38 +24,113 @@ export const getAllServicesFromDB = async () => {
 
     return serviceWithPrice;
 };
-
 export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceData: any) => {
-    // Remove the serviceId from the services array of the specified mechanic
+    // Check if mechanic exists
     const mechanic = await Mechanic.findOne({ user: mechanicId });
     if (!mechanic) {
         throw new Error("Mechanic not found");
     }
-    // Check if the service is already added to the mechanic
-    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicId });
+
+    // Get or create mechanic service rate document
+    let mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicId });
+
     if (!mechanicServiceRate) {
-        throw new Error("Mechanic service rate not found");
+        // Create new mechanic service rate document if it doesn't exist
+        mechanicServiceRate = new MechanicServiceRateModel({
+            mechanic: mechanicId,
+            services: []
+        });
     }
-    const serviceAlreadyExists = mechanicServiceRate.services.some(
+
+    // Check if the service already exists (including soft-deleted ones)
+    const existingServiceIndex = mechanicServiceRate.services.findIndex(
         (s: any) => s.service.toString() === serviceData.serviceId
     );
-    if (serviceAlreadyExists) {
-        throw new Error("Service already added to the mechanic");
+
+    if (existingServiceIndex !== -1) {
+        // Service exists - check if it's soft-deleted
+        const existingService = mechanicServiceRate.services[existingServiceIndex];
+
+        if (existingService.isDeleted) {
+            // Reactivate the soft-deleted service with new price
+            const updatedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
+                {
+                    mechanic: mechanicId,
+                    "services._id": existingService._id
+                },
+                {
+                    $set: {
+                        "services.$.price": serviceData.price,
+                        "services.$.isDeleted": false
+                    }
+                },
+                { new: true }
+            );
+
+            return updatedMechanicService;
+        } else {
+            // Service is already active
+            throw new Error("Service is already active for this mechanic");
+        }
+    } else {
+        // Service doesn't exist, add new service
+        const addedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
+            { mechanic: mechanicId },
+            {
+                $push: {
+                    services: {
+                        service: serviceData.serviceId,
+                        price: serviceData.price,
+                        isDeleted: false
+                    }
+                }
+            },
+            {
+                new: true,
+                upsert: true // Create document if it doesn't exist
+            }
+        );
+
+        if (!addedMechanicService) {
+            throw new Error("Failed to add service to mechanic");
+        }
+
+        return addedMechanicService;
     }
-
-    const addedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
-        { mechanic: mechanicId },
-        { $push: { services: { service: serviceData.serviceId, price: serviceData.price, isDeleted: false } } },
-        { new: true } // Return the updated document
-    );
-
-    if (!addedMechanicService) {
-        throw new Error("Mechanic or service not found");
-    }
-
-    // Optionally, return all services after the update
-    return addedMechanicService;
 };
+
+
+// export const addServiceToMechanicIntoDB = async (mechanicId: string, serviceData: any) => {
+//     // Remove the serviceId from the services array of the specified mechanic
+//     const mechanic = await Mechanic.findOne({ user: mechanicId });
+//     if (!mechanic) {
+//         throw new Error("Mechanic not found");
+//     }
+//     // Check if the service is already added to the mechanic
+//     const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicId });
+//     if (!mechanicServiceRate) {
+//         throw new Error("Mechanic service rate not found");
+//     }
+//     const serviceAlreadyExists = mechanicServiceRate.services.some(
+//         (s: any) => s.service.toString() === serviceData.serviceId
+//     );
+//     if (serviceAlreadyExists) {
+//         throw new Error("Service already added to the mechanic");
+//     }
+
+//     const addedMechanicService = await MechanicServiceRateModel.findOneAndUpdate(
+//         { mechanic: mechanicId },
+//         { $push: { services: { service: serviceData.serviceId, price: serviceData.price, isDeleted: false } } },
+//         { new: true } // Return the updated document
+//     );
+
+//     if (!addedMechanicService) {
+//         throw new Error("Mechanic or service not found");
+//     }
+
+//     // Optionally, return all services after the update
+//     return addedMechanicService;
+// };
 export const deleteServiceByMechanicFromDB = async (mechanicId: string, serviceId: string) => {
     // Remove the serviceId from the services array of the specified mechanic
     const mechanicService = await MechanicServiceRateModel.findOneAndUpdate(

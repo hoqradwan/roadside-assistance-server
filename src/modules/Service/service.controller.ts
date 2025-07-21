@@ -78,7 +78,7 @@ export const addServiceToMechanic = catchAsync(async (req: CustomRequest, res: R
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Service added to mechanic  successfully",
+        message: "Service added to mechanic successfully",
         data: result
     })
 }

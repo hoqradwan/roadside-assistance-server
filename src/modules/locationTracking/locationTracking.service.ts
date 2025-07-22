@@ -1,3 +1,4 @@
+import { Request, Response } from "express";
 import { UserModel } from "../user/user.model";
 import { trackingEventEmitter } from "./locationTracking.event";
 import { IDistanceTracking, ILocationUpdate } from "./locationTracking.interface";
@@ -252,7 +253,8 @@ export const findNearbyMechanics = async (
 /**
  * Get tracking history for a service request
  */
-export const getTrackingHistory = async (orderId: string): Promise<ILocationUpdate[]> => {
+export const getTrackingHistory = async (req:Request, res : Response): Promise<ILocationUpdate[]> => {
+  const orderId  = req.params.orderId;
   const tracking = await DistanceTrackingModel.findOne({ orderId });
   return tracking?.trackingHistory || [];
 };

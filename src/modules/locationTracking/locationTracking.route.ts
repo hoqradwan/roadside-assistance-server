@@ -14,7 +14,7 @@ router.put('/:orderId/user-location',adminMiddleware("user"),  updateUserLocatio
 
 // Get tracking info
 router.get('/:orderId', getTrackingInfo);
-router.get('/:serviceRequestId/history', getTrackingHistory);
+router.get('/:orderId/history', getTrackingHistory);
 
 // // Complete/Cancel tracking
 router.put('/:orderId/complete', completeTracking);

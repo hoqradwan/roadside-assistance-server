@@ -34,6 +34,15 @@ export const getAllWithdrawRequests = catchAsync(async (req: CustomRequest, res:
         data: result
     })
 });
+export const getAllWithdrawRequestsForAdmin = catchAsync(async (req: CustomRequest, res: Response) => {
+    const result = await getAllWithdrawRequestsFromDB();
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Withdraw request retrieved successfully",
+        data: result
+    })
+});
 export const allWithdrawRequests = catchAsync(async (req: CustomRequest, res: Response) => {
     const { id: mechanicId } = req.user;
     const result = await getAllWithdrawRequestsByMechanic(mechanicId);

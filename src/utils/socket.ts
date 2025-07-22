@@ -161,64 +161,67 @@ const initSocketIO = (server: HttpServer) => {
         if (userType === 'mechanic') {
          result = await updateMechanicLocationIntoDB(orderId, userId, longitude, latitude);
         } else {
+
          result = await updateUserLocationIntoDB(orderId, userId, longitude, latitude);
         }
         socket.emit("updateLocation",result);
       } catch (error) {
+        console.log(error)
         socket.emit('error', { message: 'Failed to update location' });
       }
     });
-    const locationBuffer: any = [];
-    const LOCATION_LIMIT = 30;
-    let lastUpdateTime = Date.now();
 
-    socket.on("client_location", async (data, callback) => {
-      const longitude = (data.lng);
-      const latitude = (data.lat);
-      const userId = data.user;
-      console.log(latitude, longitude, userId)
-      console.log(locationBuffer, "from socket")
-      locationBuffer.push({ longitude, latitude });
-      if (locationBuffer.length >= LOCATION_LIMIT) {
-        const currentTime = Date.now();
-        const timeElapsed = currentTime - lastUpdateTime;
-        console.log("in client location", locationBuffer, locationBuffer.length)
+    // const locationBuffer: any = [];
+    // const LOCATION_LIMIT = 30;
+    // let lastUpdateTime = Date.now();
 
-        if (timeElapsed >= 30 * 1000) {
-          try {
-            const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+    // socket.on("client_location", async (data, callback) => {
+    //   const longitude = (data.lng);
+    //   const latitude = (data.lat);
+    //   const userId = data.user;
+    //   console.log(latitude, longitude, userId)
+    //   console.log(locationBuffer, "from socket")
+    //   locationBuffer.push({ longitude, latitude });
+    //   if (locationBuffer.length >= LOCATION_LIMIT) {
+    //     const currentTime = Date.now();
+    //     const timeElapsed = currentTime - lastUpdateTime;
+    //     console.log("in client location", locationBuffer, locationBuffer.length)
 
-            const result = await UserModel.findByIdAndUpdate(
-              userId,
-              { $set: { "location.coordinates": [longitude, latitude] } },
-              { new: true }
-            );
-            console.log(result)
-            // const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
+    //     if (timeElapsed >= 30 * 1000) {
+    //       try {
+    //         const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
 
-            // console.log({"location.coordinates": lastLocation})
-            // await User.findByIdAndUpdate(
-            //   user?._id,
-            //   { $set: { "location.coordinates": lastLocation } },
-            //   { new: true }
-            // );
+    //         const result = await UserModel.findByIdAndUpdate(
+    //           userId,
+    //           { $set: { "location.coordinates": [longitude, latitude] } },
+    //           { new: true }
+    //         );
+    //         console.log(result)
+    //         // const lastLocation = locationBuffer[LOCATION_LIMIT - 1];
 
-            console.log("Database updated with location:", lastLocation);
-            locationBuffer.length = 0;
-            lastUpdateTime = Date.now();
-          } catch (error) {
-            console.error("Error updating the database");
-          }
-        } else {
-          console.log(
-            `Waiting for 1 minute. Time remaining: ${30 - Math.floor(timeElapsed / 1000)
-            } seconds`
-          );
-        }
-      }
-      // io.emit(`server_location::${user?._id?.toString()}`, data);
-      io?.emit(`server_location`, data);
-    });
+    //         // console.log({"location.coordinates": lastLocation})
+    //         // await User.findByIdAndUpdate(
+    //         //   user?._id,
+    //         //   { $set: { "location.coordinates": lastLocation } },
+    //         //   { new: true }
+    //         // );
+
+    //         console.log("Database updated with location:", lastLocation);
+    //         locationBuffer.length = 0;
+    //         lastUpdateTime = Date.now();
+    //       } catch (error) {
+    //         console.error("Error updating the database");
+    //       }
+    //     } else {
+    //       console.log(
+    //         `Waiting for 1 minute. Time remaining: ${30 - Math.floor(timeElapsed / 1000)
+    //         } seconds`
+    //       );
+    //     }
+    //   }
+    //   // io.emit(`server_location::${user?._id?.toString()}`, data);
+    //   io?.emit(`server_location`, data);
+    // });
     // Handle disconnection
     socket.on('disconnect', () => {
       if (socket.userId) {

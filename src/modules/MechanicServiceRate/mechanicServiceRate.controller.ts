@@ -64,19 +64,25 @@ export const updateMechanicServiceRate = catchAsync(async (req: CustomRequest, r
 export const getMechanicServiceRate = catchAsync(async (req: CustomRequest, res: Response) => {
     const { id: mechanicId } = req.user;
 
-    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: mechanicId, "services.isDeleted": { $ne: true } }).populate("mechanic services.service");
+    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ 
+        mechanic: mechanicId 
+    }).populate("mechanic services.service");
+
     if (!mechanicServiceRate) {
         throw new Error("Mechanic service rate not found");
     }
-    let formattedServices = mechanicServiceRate.services.map((service: any) => {
+
+    // Filter out deleted services after fetching
+    const activeServices = mechanicServiceRate.services.filter((service: any) => !service.isDeleted);
+
+    let formattedServices = activeServices.map((service: any) => {
         return {
             _id: service.service._id,
             name: service.service.name,
             image: service.service.image,
             price: service.price,
         };
-    }
-    );
+    });
 
     sendResponse(res, {
         statusCode: 200,
@@ -84,5 +90,4 @@ export const getMechanicServiceRate = catchAsync(async (req: CustomRequest, res:
         message: "Mechanic services with price retrieved successfully",
         data: formattedServices,
     });
-}
-);
+});

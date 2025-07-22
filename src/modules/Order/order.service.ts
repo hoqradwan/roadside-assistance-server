@@ -367,6 +367,7 @@ export const getOrdersByUserFromDB = async (userId: string, role: string) => {
       return serviceRates;
     } else if (role === "admin") {
       userOrders = await Order.find({})
+        .populate({ path: 'user', select: "name image email" })
         .populate({ path: 'mechanic', select: "name image email" })
         .populate({ path: 'services', model: 'Service', select: 'name' });
 
@@ -650,16 +651,17 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
 
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
   const userId = userData?.id;  // The logged-in user's ID
-  let cancelledCount, processingCount, completedCount;
+  let cancelledCount,pendingCount, processingCount, completedCount;
   const query = status ? { status } : {};
 
   // If the user is an admin, they can fetch orders for any mechanic
   if (userData.role === 'admin') {
-    const order = await Order.find(query).select("-vehicle -services -location -user");
+    const order = await Order.find().select("-vehicle -services -location -user");
+    pendingCount = await Order.countDocuments({ status: 'pending' });
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
     cancelledCount = await Order.countDocuments({ status: 'cancelled' });
-    return { order, processingCount, completedCount, cancelledCount };
+    return {  pendingCount, processingCount, completedCount, cancelledCount };
   }
 
   // If the user is a mechanic, they can only fetch their own orders

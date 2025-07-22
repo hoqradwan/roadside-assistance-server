@@ -9,6 +9,12 @@ const WithdrawSchema = new Schema<IWithdraw>({
         required: true,
         default : 'withdraw'
     },
+    adminStatus:{
+        type: String,
+        enum: ['pending', 'completed', 'cancelled'],
+        required: true,
+        default: 'pending'
+    },
     amount: {
         type: Number,
         required: true,

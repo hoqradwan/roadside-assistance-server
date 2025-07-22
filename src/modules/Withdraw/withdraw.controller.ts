@@ -2,7 +2,7 @@ import { Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
-import { createWithdrawIntoDB, getAllWithdrawRequestsByMechanic, getAllWithdrawRequestsFromDB, markAsPaidIntoDB } from "./withdraw.service";
+import { createWithdrawIntoDB, getAllWithdrawRequestsByMechanic, getAllWithdrawRequestsForAdminFromDB, getAllWithdrawRequestsFromDB, markAsPaidIntoDB } from "./withdraw.service";
 
 export const createWithdraw = catchAsync(async (req: CustomRequest, res: Response) => {
     const { amount } = req.body;
@@ -35,11 +35,11 @@ export const getAllWithdrawRequests = catchAsync(async (req: CustomRequest, res:
     })
 });
 export const getAllWithdrawRequestsForAdmin = catchAsync(async (req: CustomRequest, res: Response) => {
-    const result = await getAllWithdrawRequestsFromDB();
+    const result = await getAllWithdrawRequestsForAdminFromDB();
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Withdraw request retrieved successfully",
+        message: "Withdraw request for admin retrieved successfully",
         data: result
     })
 });

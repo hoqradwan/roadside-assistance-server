@@ -16,13 +16,17 @@ export const createWithdrawIntoDB = async (amount: number, id: string) => {
     }
     const withdraw = new Withdraw({
         amount,
-        user: id
+        user: id,
+        adminStatus: 'pending' // Default status for admin review
     });
     await withdraw.save();
     return withdraw;
 }
 export const markAsPaidIntoDB = async (mechanicId: string) => {
-    const result = await Withdraw.findByIdAndUpdate(mechanicId, { status: 'completed' }, { new: true });
+    const result = await Withdraw.findByIdAndUpdate(mechanicId, {
+        status: 'withdraw',
+        adminStatus: 'completed'
+    }, { new: true });
     return result;
 }
 export const getAllWithdrawRequestsFromDB = async () => {
@@ -66,7 +70,7 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
         __v: number;
         name: string;
     }
-    
+
     const serviceEntries: ServiceEntry[] = [];
 
     for (const order of mechanicOrders) {
@@ -118,8 +122,8 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
     }
 
     // Rest of your code remains the same...
-    const withdrawRequests = await Withdraw.find({ user: mechanicId });
-    
+    const withdrawRequests = await Withdraw.find({ user: mechanicId, status: 'withdraw' });
+
     const withdrawEntries = withdrawRequests.map((withdraw) => ({
         _id: withdraw._id,
         status: withdraw.status,
@@ -136,114 +140,46 @@ export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
 
     return combinedData;
 };
-// export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
-//     const mechanic = await UserModel.findById(mechanicId);
-//     if (!mechanic) {
-//         throw new Error("Mechanic not found");
-//     }
-//     const mechanicOrders = await Order.find({ mechanic: mechanicId });
-//     if (!mechanicOrders) {
-//         throw new Error("No orders found for this mechanic");
-//     }
+export const getAllWithdrawRequestsForAdminFromDB = async () => {
+    const withdrawRequests = await Withdraw.find().select("-status").populate({ path: "user", select: "name image uniqueUserId experience role" });
+    const paymentMethods = await PaymentMethod.find();
+
+    // Create a map for fast lookup of payment methods by user ID
+    const paymentMethodsMap = new Map(paymentMethods.map(pm => [pm.user.toString(), pm]));
+
+    const withdrawRequestsWithPaymentMethods = withdrawRequests.map((withdraw) => {
+        // Use map to find the payment method efficiently
+        const paymentMethod = paymentMethodsMap.get((withdraw.user as any)._id.toString()) || null;
+
+        return {
+            ...withdraw.toObject(),
+            paymentMethod
+        };
+    });
+
+    return withdrawRequestsWithPaymentMethods;
+};
 
 
-//     const withdrawRequests = await Withdraw.find({ user: mechanicId });
-//     const withdrawRequestsWIthName = withdrawRequests.map((withdraw) => {
-//         return {
+// export const getAllWithdrawRequestsForAdminFromDB = async () => {
+//     const withdrawRequests = await Withdraw.find().select("-status").populate({ path: "user", select: "name image uniqueUserId experience role" });
+//     const paymentMethods = await PaymentMethod.find();
+
+//     const withdrawRequestsWithPaymentMethods: any[] = [];
+
+//     // Use for loop to iterate over withdrawRequests
+//     for (let i = 0; i < withdrawRequests.length; i++) {
+//         const withdraw = withdrawRequests[i];
+        
+//         // Find the corresponding payment method by iterating through the paymentMethods array
+//         const paymentMethod = paymentMethods.find(pm => pm.user.toString() === (withdraw.user as any)._id.toString()) || null;
+
+//         // Push the result into the new array
+//         withdrawRequestsWithPaymentMethods.push({
 //             ...withdraw.toObject(),
-//             name: "Transaction Amount",
-//         }
-//     })
-//     return withdrawRequestsWIthName;
-// }
-
-// export const getAllWithdrawRequestsByMechanic = async (mechanicId: string) => {
-//     const mechanic = await UserModel.findById(mechanicId);
-//     if (!mechanic) {
-//         throw new Error("Mechanic not found");
-//     }
-
-//     // Get all orders for this mechanic
-//     const mechanicOrders = await Order.find({ mechanic: mechanicId });
-//     if (!mechanicOrders || mechanicOrders.length === 0) {
-//         throw new Error("No orders found for this mechanic");
-//     }
-
-//     // Process orders to get service-based entries
-//     interface ServiceEntry {
-//         _id: any;
-//         status: string;
-//         amount: number;
-//         user: any;
-//         createdAt: Date;
-//         updatedAt: Date;
-//         __v: number;
-//         name: string;
-//     }
-
-//     interface WithdrawEntry {
-//         _id: any;
-//         status: string;
-//         amount: number;
-//         user: any;
-//         createdAt: Date;
-//         updatedAt: Date;
-//         __v: number;
-//         name: string;
-//     }
-
-//     const serviceEntries: ServiceEntry[] = [];
-
-//     for (const order of mechanicOrders) {
-//         // Fetch the mechanic's service rates
-//         const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: order.mechanic })
-//             .populate({
-//                 path: "services.service",
-//                 select: "_id name"
-//             });
-//             console.log(mechanicServiceRate)
-//         if (mechanicServiceRate) {
-//             // Map each service in the order to create individual entries
-//             order.services.forEach(orderServiceId => {
-//                 // Find matching service rate from mechanic's rates
-//                 const matchedServiceRate = mechanicServiceRate.services.find(serviceRate =>(
-//                 serviceRate.service._id.toString() === orderServiceId.toString()
-//                 ));
-
-//             if (matchedServiceRate) {
-//                 serviceEntries.push({
-//                     _id: order._id,
-//                     status: order.status, // "processing", "pending", "completed", etc.
-//                     amount: matchedServiceRate.price,
-//                     user: order.user,
-//                     createdAt: order.get('createdAt'),
-//                     updatedAt: order.get('updatedAt'),
-//                     __v: order.__v,
-//                     name: (matchedServiceRate.service as any).name // service name
-//                 });
-//             }
+//             paymentMethod
 //         });
 //     }
-// }
-// // Get all withdraw requests for this mechanic
-// const withdrawRequests = await Withdraw.find({ user: mechanicId });
 
-// // Process withdraw requests
-// const withdrawEntries = withdrawRequests.map((withdraw) => ({
-//     _id: withdraw._id,
-//     status: withdraw.status, // "withdraw" or whatever exists in database
-//     amount: withdraw.amount,
-//     user: withdraw.user,
-//     createdAt: withdraw.get("createdAt"),
-//     updatedAt: withdraw.get("updatedAt"),
-//     name: "from admin" // static text
-// }));
-
-// // Combine both arrays
-// const combinedData = [...serviceEntries, ...withdrawEntries];
-
-// // Sort by createdAt (newest first) - optional
-// combinedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-// return combinedData;
-// }
+//     return withdrawRequestsWithPaymentMethods;
+// };

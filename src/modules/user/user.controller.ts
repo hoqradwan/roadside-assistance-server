@@ -1087,10 +1087,9 @@ export const getProfile = catchAsync(async (req: CustomRequest, res: Response) =
 export const updateProfile = catchAsync(async (req: CustomRequest, res: Response) => {
   const { id: userId } = req.user;
 
-
   // Parse the data sent as JSON in req.body
   const formattedData = JSON.parse(req.body.data);
-
+  console.log(req.body.data, formattedData, "formattedData");
   // Get the profile image and driver license from the files (S3 URLs)
   const image =
     req.files &&

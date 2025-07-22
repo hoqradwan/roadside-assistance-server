@@ -11,6 +11,4 @@ router.get('/all',adminMiddleware("admin"), getAllWithdrawRequests);
 router.get('/admin/all',adminMiddleware("admin"), getAllWithdrawRequestsForAdmin);
 
 
-
-
 export const withdrawRoutes =  router;

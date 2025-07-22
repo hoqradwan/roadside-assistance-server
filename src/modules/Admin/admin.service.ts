@@ -55,7 +55,7 @@ export const acceptWithdrawRequestIntoDB = async (mechanicId: string) => {
         // 1. Update the withdraw request status to "completed"
         const withdraw = await Withdraw.findOneAndUpdate(
             { user: mechanicId },
-            { status: "completed" },
+            {status : "withdraw", adminStatus: "completed" },
             { session }
         );
 

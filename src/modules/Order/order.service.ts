@@ -16,6 +16,7 @@ import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicService
 import mongoose from "mongoose";
 import { calculateDistance } from "./order.utils";
 import { IPayment } from "../payment/payment.interface";
+import { PaymentModel } from "../payment/payment.model";
 
 export const createOrderIntoDB = async (userId: string, orderData: any) => {
   // 1. Validate user exists
@@ -171,63 +172,62 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
   return order[0];
 };
 
-// export const makePaymentIntoDB = async (userId: string, orderId: string, paymentData: IPayment, // Added payment data
-// ) => {
-//     const session = await mongoose.startSession();
-//     session.startTransaction();
-//     try {
-//         // Fetch the user
-//         const user = await UserModel.findById(userId).session(session);
-//         if (!user) {
-//             throw new AppError(httpStatus.BAD_REQUEST, "User not found");
-//         }
+export const makePaymentIntoDB = async (userId: string, orderId: string, paymentData: IPayment, // Added payment data
+) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    // Fetch the user
+    const user = await UserModel.findById(userId).session(session);
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    }
 
-//         // Fetch the order
-//         const order = await Order.findById(orderId).session(session);
-//         if (!order) {
-//             throw new AppError(httpStatus.BAD_REQUEST, "order not found");
-//         }
-//         payment = {
-//                 transactionId: paymentData.transactionId,
-//                 orderId, 
-//                 user: userId,
-//                 amount: order.total, // Use the booking's total price
-//                 paymentDate: new Date(), // Use the current date for payment date
-//                 status: 'completed', // Assuming the payment is successful
-//                 isDeleted: false,
-//             };
+    // Fetch the order
+    const order = await Order.findById(orderId).session(session);
+    if (!order) {
+      throw new AppError(httpStatus.BAD_REQUEST, "order not found");
+    }
+    let payment = {
+      transactionId: paymentData.transactionId,
+      orderId,
+      user: userId,
+      amount: order.total, // Use the booking's total price
+      paymentDate: new Date(), // Use the current date for payment date
+      status: 'completed', // Assuming the payment is successful
+      isDeleted: false,
+    };
 
-//             // Create the payment record
-//             const createdPayment = await PaymentModel.create([payment], { session });
-//             if (!createdPayment || createdPayment.length === 0) {
-//                 throw new Error('Payment creation failed');
-//             }
-//             const payment = createdPayment[0];
-//             const adminUser = await UserModel.findOne({role:"admin"}).session(session);
-//             // Update the admin's total balance in Earning
-//             await Wallet.findOneAndUpdate(
-//                 { user: adminUser._id },
-//                 { $inc: { totalBalance: order.total } },
-//                 { new: true, upsert: true, session }
-//             );
+    // Create the payment record
+    const createdPayment = await PaymentModel.create([payment], { session });
+    if (!createdPayment || createdPayment.length === 0) {
+      throw new Error('Payment creation failed');
+    }
+    const adminUser = await UserModel.findOne({ role: "admin" }).session(session);
+    // Update the admin's total balance in Earning
+    await Wallet.findOneAndUpdate(
+      { user: adminUser._id },
+      { $inc: { totalBalance: order.total } },
+      { new: true, upsert: true, session }
+    );
 
 
-//         // Commit the transaction
-//         await session.commitTransaction();
-//         session.endSession();
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
-//         // Return the payment and booking information
-//         return {
-//             payment: payment,
-//             order: order,
-//         };
-//     } catch (error: any) {
-//         // Abort the transaction in case of an error
-//         await session.abortTransaction();
-//         session.endSession();
-//         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, `Transaction failed: ${error}`);
-//     }
-// };
+    // Return the payment and booking information
+    return {
+      payment: payment,
+      order: order,
+    };
+  } catch (error: any) {
+    // Abort the transaction in case of an error
+    await session.abortTransaction();
+    session.endSession();
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, `Transaction failed: ${error}`);
+  }
+};
 
 
 export const acceptOrderIntoDB = async (orderId: string, userId: string) => {
@@ -651,7 +651,7 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
 
 export const getOrdersByStatusFromDB = async (status: string, userData: Partial<IUser>) => {
   const userId = userData?.id;  // The logged-in user's ID
-  let cancelledCount,pendingCount, processingCount, completedCount;
+  let cancelledCount, pendingCount, processingCount, completedCount;
   const query = status ? { status } : {};
 
   // If the user is an admin, they can fetch orders for any mechanic
@@ -661,7 +661,7 @@ export const getOrdersByStatusFromDB = async (status: string, userData: Partial<
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
     cancelledCount = await Order.countDocuments({ status: 'cancelled' });
-    return {  pendingCount, processingCount, completedCount, cancelledCount };
+    return { pendingCount, processingCount, completedCount, cancelledCount };
   }
 
   // If the user is a mechanic, they can only fetch their own orders

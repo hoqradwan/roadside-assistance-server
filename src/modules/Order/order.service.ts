@@ -184,15 +184,17 @@ export const makePaymentIntoDB = async (userId: string, orderId: string, payment
     }
 
     // Fetch the order
-    const order = await Order.findById(orderId).session(session);
-    if (!order) {
-      throw new AppError(httpStatus.BAD_REQUEST, "order not found");
+    const userOrder = await Order.findOne({ _id: orderId, user: userId }).session(session);
+    console.log(orderId, userId)
+    if (!userOrder) {
+      throw new AppError(httpStatus.BAD_REQUEST, "order not found or does not belong to this user");
     }
     let payment = {
       transactionId: paymentData.transactionId,
       orderId,
-      user: userId,
-      amount: order.total, // Use the booking's total price
+      userId,
+      paymentData : {},
+      amount: userOrder.total, // Use the booking's total price
       paymentDate: new Date(), // Use the current date for payment date
       status: 'completed', // Assuming the payment is successful
       isDeleted: false,
@@ -207,10 +209,11 @@ export const makePaymentIntoDB = async (userId: string, orderId: string, payment
     // Update the admin's total balance in Earning
     await Wallet.findOneAndUpdate(
       { user: adminUser._id },
-      { $inc: { totalBalance: order.total } },
+      { $inc: { totalBalance: userOrder.total } },
       { new: true, upsert: true, session }
     );
-
+    userOrder.status = "paid"; // Update order status to paid
+    userOrder.save({ session });
 
     // Commit the transaction
     await session.commitTransaction();
@@ -219,7 +222,7 @@ export const makePaymentIntoDB = async (userId: string, orderId: string, payment
     // Return the payment and booking information
     return {
       payment: payment,
-      order: order,
+      order: userOrder,
     };
   } catch (error: any) {
     // Abort the transaction in case of an error

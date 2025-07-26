@@ -161,8 +161,7 @@ const initSocketIO = (server: HttpServer) => {
         if (userType === 'mechanic') {
          result = await updateMechanicLocationIntoDB(orderId, userId, longitude, latitude);
         } else {
-
-         result = await updateUserLocationIntoDB(orderId, userId, longitude, latitude);
+         result = await updateUserLocationIntoDB(orderId, userData?.id, longitude, latitude);
         }
         socket.emit("updateLocation",result);
       } catch (error) {

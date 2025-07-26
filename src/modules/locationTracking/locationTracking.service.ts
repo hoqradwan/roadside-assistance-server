@@ -5,10 +5,59 @@ import { IDistanceTracking, ILocationUpdate } from "./locationTracking.interface
 import { DistanceTrackingModel } from "./locationTracking.model";
 import { calculateDistance, calculateETA } from "./locationTracking.utils";
 
+// export const initializeTrackingIntoDB = async (
+//   orderId: string,
+//   userId: string,
+//   mechanicId: string,
+//   coordinates?: Array<[number, number]>,
+// ): Promise<IDistanceTracking> => {
+//   // Get user and mechanic locations
+//   const user = await UserModel.findById(userId);
+//   const mechanic = await UserModel.findById(mechanicId);
+//   if (!user || !mechanic) {
+//     throw new Error('User or mechanic not found');
+//   }
+
+
+
+//   const distance = calculateDistance(
+//     coordinates[1] || 0, // latitude
+//     coordinates[0] || 0, // longitude
+//     mechanic.location.coordinates[1],
+//     mechanic.location.coordinates[0]
+//   );
+
+//   const estimatedArrival = calculateETA(distance);
+
+//   const tracking = new DistanceTrackingModel({
+//     orderId: orderId,
+//     userId,
+//     mechanicId,
+//     userLocation,
+//     mechanicLocation,
+//     distance,
+//     estimatedArrival,
+//     status: 'pending'
+//   });
+
+//   await tracking.save();
+
+//   // Emit tracking initialized event
+//   trackingEventEmitter.emit('trackingInitialized', {
+//     orderId: orderId,
+//     userId,
+//     mechanicId,
+//     distance,
+//     estimatedArrival
+//   });
+
+//   return tracking;
+// };
 export const initializeTrackingIntoDB = async (
-  orderId: string, 
-  userId: string, 
-  mechanicId: string
+  orderId: string,
+  userId: string,
+  mechanicId: string,
+  coordinates?: [number, number], // [longitude, latitude]
 ): Promise<IDistanceTracking> => {
   // Get user and mechanic locations
   const user = await UserModel.findById(userId);
@@ -17,58 +66,62 @@ export const initializeTrackingIntoDB = async (
     throw new Error('User or mechanic not found');
   }
 
+  // Ensure coordinates are provided
+  if (!coordinates || coordinates.length !== 2) {
+    throw new Error('Coordinates must be provided as [longitude, latitude]');
+  }
+
+  // Create GeoJSON points
+  const userLocation = {
+    type: 'Point',
+    coordinates: [coordinates[0], coordinates[1]], // [longitude, latitude]
+  };
+
+  const mechanicLocation = mechanic.location; // Already in GeoJSON format
+
   const distance = calculateDistance(
-    user.location.coordinates[1], // latitude
-    user.location.coordinates[0], // longitude
-    mechanic.location.coordinates[1],
-    mechanic.location.coordinates[0]
+    coordinates[1], // latitude
+    coordinates[0], // longitude
+    mechanicLocation.coordinates[1],
+    mechanicLocation.coordinates[0]
   );
 
   const estimatedArrival = calculateETA(distance);
 
   const tracking = new DistanceTrackingModel({
-    orderId: orderId,
+    orderId,
     userId,
     mechanicId,
-    userLocation: user.location,
-    mechanicLocation: mechanic.location,
+    userLocation,
+    mechanicLocation,
     distance,
     estimatedArrival,
-    status: 'pending'
+    status: 'pending',
   });
 
   await tracking.save();
-//   trackingEventEmitter.on('trackingInitialized', (data) => {
-//   console.log('Event data received:', data);
-
-//   // Example: Process the event (save data, notify, etc.)
-//   // Here, we're just simulating an action
-//   setTimeout(() => {
-//     console.log(`Processed tracking event for Order ID: ${data.orderId}`);
-//   }, 1000);
-// });
 
   // Emit tracking initialized event
   trackingEventEmitter.emit('trackingInitialized', {
-    orderId: orderId,
+    orderId,
     userId,
     mechanicId,
     distance,
-    estimatedArrival
+    estimatedArrival,
   });
 
   return tracking;
 };
 
 export const updateMechanicLocationIntoDB = async (
-  orderId: string, 
-  mechanicId: string, 
-  longitude: number, 
+  orderId: string,
+  mechanicId: string,
+  longitude: number,
   latitude: number,
   additionalData?: { accuracy?: number; speed?: number; heading?: number }
 ): Promise<IDistanceTracking | null> => {
-  const tracking = await DistanceTrackingModel.findOne({ 
-    orderId, 
+  const tracking = await DistanceTrackingModel.findOne({
+    orderId,
     mechanicId,
     status: { $in: ['pending', 'in_progress'] }
   });
@@ -142,8 +195,8 @@ export const updateUserLocationIntoDB = async (
   longitude: number,
   latitude: number
 ): Promise<IDistanceTracking | null> => {
-  const tracking = await DistanceTrackingModel.findOne({ 
-    orderId, 
+  const tracking = await DistanceTrackingModel.findOne({
+    orderId,
     userId,
     status: { $in: ['pending', 'in_progress'] }
   });
@@ -206,8 +259,8 @@ export const getTrackingInfoFromDB = async (orderId: string): Promise<IDistanceT
 
 export const completeTrackingIntoDB = async (orderId: string): Promise<void> => {
   await DistanceTrackingModel.findOneAndUpdate(
-    {  orderId },
-    { 
+    { orderId },
+    {
       status: 'completed',
       lastUpdated: new Date()
     }
@@ -222,7 +275,7 @@ export const completeTrackingIntoDB = async (orderId: string): Promise<void> => 
 export const cancelTrackingIntoDB = async (orderId: string): Promise<void> => {
   await DistanceTrackingModel.findOneAndUpdate(
     { orderId },
-    { 
+    {
       status: 'cancelled',
       lastUpdated: new Date()
     }
@@ -235,8 +288,8 @@ export const cancelTrackingIntoDB = async (orderId: string): Promise<void> => {
  * Find nearby mechanics within a specified radius
  */
 export const findNearbyMechanics = async (
-  longitude: number, 
-  latitude: number, 
+  longitude: number,
+  latitude: number,
   radiusInKm: number = 10
 ): Promise<any[]> => {
   return await UserModel.find({
@@ -253,21 +306,21 @@ export const findNearbyMechanics = async (
 /**
  * Get tracking history for a service request
  */
-export const getTrackingHistory = async (req:Request, res : Response): Promise<ILocationUpdate[]> => {
-  const orderId  = req.params.orderId;
+export const getTrackingHistory = async (req: Request, res: Response): Promise<ILocationUpdate[]> => {
+  const orderId = req.params.orderId;
   const tracking = await DistanceTrackingModel.findOne({ orderId });
   return tracking?.trackingHistory || [];
 };
 
 // export const updateMechanicLocationIntoDB = async (
-//   serviceRequestId: string, 
-//   mechanicId: string, 
-//   longitude: number, 
+//   serviceRequestId: string,
+//   mechanicId: string,
+//   longitude: number,
 //   latitude: number,
 //   additionalData?: { accuracy?: number; speed?: number; heading?: number }
 // ): Promise<IDistanceTracking | null> => {
-//   const tracking = await DistanceTrackingModel.findOne({ 
-//     serviceRequestId, 
+//   const tracking = await DistanceTrackingModel.findOne({
+//     serviceRequestId,
 //     mechanicId,
 //     status: { $in: ['pending', 'in_progress'] }
 //   });

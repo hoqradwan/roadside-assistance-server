@@ -7,10 +7,10 @@ import { trackingEventEmitter } from "./locationTracking.event";
 import { io } from "../../utils/socket";
 
 export const initializeTracking = catchAsync(async (req: CustomRequest, res: Response) => {
-    const { orderId } = req.body;
+    const { orderId, coordinates } = req.body;
     const { id: userId } = req.user;
     const { mechanicId } = req.params;
-    const result = await initializeTrackingIntoDB(orderId, userId, mechanicId);
+    const result = await initializeTrackingIntoDB(orderId, userId, mechanicId,coordinates as any);
 
     sendResponse(res, {
         statusCode: 200,

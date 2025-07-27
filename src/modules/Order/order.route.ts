@@ -6,13 +6,13 @@ const router = Router();
 
 // Create a new order
 router.get('/user',adminMiddleware("admin","user","mechanic"), getOrdersByUser);
+router.get('/:id', adminMiddleware("admin","user","mechanic"),  getSingleOrder);
 router.get('/:status',adminMiddleware("admin","mechanic","user"), getOrdersByStatus);
 router.get('/all',adminMiddleware("admin"), getOrders)
 router.post('/', adminMiddleware("user"), createOrder);
 router.post('/makePayment/:orderId', adminMiddleware("user"), makePayment);
 router.post('/accept/:orderId', adminMiddleware("mechanic"), acceptOrder);
 router.post('/cancel/:orderId', adminMiddleware("mechanic"), cancelOrder);
-router.get('/:id', adminMiddleware("admin","user"),  getSingleOrder);
 router.get('/admin/:orderId', adminMiddleware("admin"),  getOrderById);
 router.get('/:mechanicid',adminMiddleware("admin","mechanic"), getOrdersByMechanic);
 router.post('/markComplete/:orderId', adminMiddleware("mechanic"), markAsComplete);

@@ -585,25 +585,11 @@ export const getOrdersFromDB = async ({
 // Full service to fetch the mechanic's service rates
 export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IUser>) => {
   try {
-    let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
+    if(userData.role === 'user'){
+      let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
     if (!appService) {
       throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
     }
-
-    // if (userData.role === 'user') {
-    //   // When the user role is 'user', fetch order data for that user
-    //   const result = await Order.findOne({ user: userData.id })
-    //     .populate({ path: 'mechanic', select: "name image email" })
-    //     .populate('vehicle')
-    //     .populate({ path: 'user', select: "name image email phone" })
-    //     .populate({
-    //       path: 'services',
-    //       model: 'Service',
-    //       select: 'name',
-    //     });
-
-    //   return { result, appService: appService.amount };
-    // }
 
     // Fetching the order for a specific orderId for other roles
     const result = await Order.findById(orderId)
@@ -638,7 +624,7 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
       services: filteredServices,
     };
 
-    // console.log("Filtered Mechanic Service Rates:", filteredMechanicServiceRate);
+
 
     // Return the order, app service amount, and filtered mechanic's service rates
     return {
@@ -646,6 +632,54 @@ export const getSingleOrderFromDB = async (orderId: string, userData: Partial<IU
       appService: appService.amount,
       mechanicServiceRate: filteredMechanicServiceRate
     };
+    }else if(userData.role === 'mechanic'){
+      let appService = await Commission.findOne({ applicable: 'user' }).select("amount");
+
+    if (!appService) {
+      throw new AppError(httpStatus.NOT_FOUND, "Commission configuration not found");
+    }
+
+    // Fetching the order for a specific orderId for other roles
+    const result = await Order.findById(orderId)
+      .populate({ path: 'mechanic', select: "name image email experience bio rating" })
+      .populate('vehicle')
+      .populate({ path: 'user', select: "name image email phone" });
+
+    if (!result) {
+      throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    }
+
+    // Fetch mechanic's service rate
+    const mechanicServiceRate = await MechanicServiceRateModel.findOne({ mechanic: result.mechanic })
+      .populate('services.service', 'name') // Populating service field with name
+      .lean(); // Convert to plain object for easier manipulation
+
+    if (!mechanicServiceRate) {
+      throw new AppError(httpStatus.NOT_FOUND, "Mechanic service rates not found");
+    }
+
+    // Filter services to only include those that match the order's services
+    const filteredServices = mechanicServiceRate.services.filter(serviceRate => {
+      return result.services.some(orderServiceId =>
+        orderServiceId.toString() === serviceRate.service._id.toString()
+      );
+    });
+
+    // Create the filtered mechanicServiceRate object
+    const filteredMechanicServiceRate = {
+      _id: mechanicServiceRate._id,
+      mechanic: mechanicServiceRate.mechanic,
+      services: filteredServices,
+    };
+
+    // Return the order, app service amount, and filtered mechanic's service rates
+    return {
+      result,
+      appService: appService.amount,
+      mechanicServiceRate: filteredMechanicServiceRate
+    };
+    }
+
   } catch (error) {
     console.error("Error fetching order data:", error);
     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "An error occurred while fetching the order data");

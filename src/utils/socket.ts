@@ -94,7 +94,8 @@ const initSocketIO = (server: HttpServer) => {
           message,
           timestamp: new Date()
         });
-
+        const senderImage =await UserModel.findById(userData?.id).select("image");
+        const receiverImage =await UserModel.findById(to).select("image");
 
         // console.log({ onlineUsers });
         // Emit to recipient if online
@@ -102,9 +103,13 @@ const initSocketIO = (server: HttpServer) => {
           const sockeId = onlineUsers.get(to);
           io?.to(to).emit('private-message', messageResult);
         }
-
         // Also send back to sender for their own UI
-        socket.emit('send-message', messageResult);
+        socket.emit('send-message', { 
+            ...messageResult.toObject(),
+            senderImage: senderImage?.image,
+            receiverImage: receiverImage?.image
+          
+        });
 
       } catch (error) {
         logger.error(colors.red(`Error sending message: ${error}`));

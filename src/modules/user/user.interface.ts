@@ -26,7 +26,6 @@ export type IUser = {
   cuponCode: string;
   serviceRadius: number;
   location: {
-
     type: string;
     coordinates: [number, number];
   },
@@ -35,6 +34,7 @@ export type IUser = {
   activeDate: Date | null;
   isDeleted: boolean;
   uniqueUserId: string;
+  rating: number;
 
 } & Document;
 

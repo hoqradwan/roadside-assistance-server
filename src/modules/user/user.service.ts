@@ -25,14 +25,14 @@ export const createUser = async ({
   email: string;
   role: string;
   hashedPassword: string;
-}): Promise<{ createdUser: IUser }> => {
+})=> {
   const createdUser = await UserModel.create({
     name,
     email,
     role,
     password: hashedPassword,
   });
-  return { createdUser };
+  return  createdUser ;
 };
 
 export const findUserByEmail = async (email: string): Promise<IUser | null> => {

@@ -376,13 +376,12 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
   )) as IPendingUser;
   const hashedPassword = await hashPassword(password);
 
-  const { createdUser } = await createUser({
+  const  result  = await createUser({
     name,
     email,
     role,
     hashedPassword,
   });
-
   const userMsg = "Welcome to LikeMine_App.";
   const adminMsg = `${name} has successfully registered.`;
 
@@ -400,6 +399,7 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
       name,
       email,
       role,
+      _id : result._id,
     },
   });
 });

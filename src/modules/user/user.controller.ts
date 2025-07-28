@@ -16,6 +16,7 @@ import {
   getMechanicList,
   getStoredOTP,
   getUserList,
+  getUserLoactionFromDB,
   getUserRegistrationDetails,
   hashPassword,
   saveOTP,
@@ -766,6 +767,17 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: "user deleted successfully",
     data: null,
+  });
+});
+export const getUserLoaction = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const result = await getUserLoactionFromDB(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "user location retrieved successfully",
+    data: result,
   });
 });
 

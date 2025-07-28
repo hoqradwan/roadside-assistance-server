@@ -14,6 +14,7 @@ import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import Mechanic from "../Mechanic/mechanic.model";
+import { generateUniqueId } from "../Order/order.utils";
 
 export const createUser = async ({
   name,
@@ -32,6 +33,16 @@ export const createUser = async ({
     role,
     password: hashedPassword,
   });
+  if(createdUser.role === "mechanic") {
+    await Mechanic.create({
+      user: createdUser._id,
+      rating: 0,
+      experience: 0,
+      description: "",
+      serviceCount: 0,
+      isAvailable: true,
+    });
+  }
   return  createdUser ;
 };
 
@@ -314,6 +325,12 @@ export const updateProfileIntoDB = async (
 
   return updatedUser;
 };
+
+export const getUserLoactionFromDB = async (userId: string) => {
+  console.log("in service getUserLoactionFromDB", userId);
+  const user = await UserModel.findById(userId).select("location");
+  return  user && user.location && user.location.coordinates ?  user.location.coordinates : [0, 0];
+}
 
 //   const user = await UserModel.findById(userId);
 //   const mechanicData = await Mechanic.findById(mechanicId).populate("user");

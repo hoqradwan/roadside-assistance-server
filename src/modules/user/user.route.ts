@@ -22,6 +22,7 @@ import {
   updateProfile,
   getSingleUser,
   getAllMechanics,
+  getUserLoaction,
 } from "./user.controller";
 import upload from "../../middlewares/fileUploadNormal";
 import { adminMiddleware } from "../../middlewares/auth";
@@ -49,9 +50,10 @@ router.post(
   upload.fields([
     { name: "image", maxCount: 1 },  // Allow 1 image file
      // Allow 1 driver license file
-  ]),
-  updateProfile  // Controller to update the user profile after file upload
-);
+    ]),
+    updateProfile  // Controller to update the user profile after file upload
+  );
+  router.get("/location/:userId", adminMiddleware("user","mechanic"), getUserLoaction);
 router.get("/my-profile", getSelfInfo);
 router.get("/profile",adminMiddleware("admin","user","mechanic"), getProfile);
 

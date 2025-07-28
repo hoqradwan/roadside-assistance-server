@@ -13,7 +13,7 @@ import { PaymentModel } from "../payment/payment.model";
 export const getOverviewFromDB = async () => {
     const totalOrders = await Order.countDocuments();
     const totalVehicles = await Vehicle.countDocuments();
-    const totalMechanics = await Mechanic.countDocuments();
+    const totalMechanics = await UserModel.countDocuments();
     const totalUsers = await UserModel.countDocuments();
     const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
     return {

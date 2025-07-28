@@ -62,7 +62,7 @@ export const getMyNotification = catchAsync(
       } else {
         // For regular users, fetch their specific notifications
         notifications = await NotificationModel.find({ userId: userId })
-          .select("userId userMsg createdAt updatedAt")
+          .select("orderId userId userMsg createdAt updatedAt")
           .sort({ createdAt: -1 }) // Sort by createdAt in descending order
           .skip(skip)
           .limit(limit);
@@ -78,6 +78,7 @@ export const getMyNotification = catchAsync(
       // Format the notifications
       const formattedNotifications = notifications.map((notification) => ({
         _id: notification._id,
+        orderId : notification.orderId,
         msg:
           user.role === "admin" ? notification.adminMsg : notification.userMsg,
         createdAt: notification.createdAt,

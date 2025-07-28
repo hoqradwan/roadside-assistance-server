@@ -4,7 +4,6 @@ import { IReview } from "./review.interface";
 import Review from "./review.model"
   
 export const createReviewIntoDB = async (reviewData: IReview, userId: string) => {
-  console.log("hiting")
     const { order: orderId, rating, comment } = reviewData;
   
     const order = await Order.findById(orderId);
@@ -44,7 +43,7 @@ export const getReviewsFromDB = async(mechanicId: string)=>{
         throw new Error('User is not a mechanic');
     }
     // Fetch reviews for the mechanic
-    const reviews = await Review.find({ mechanic: mechanicId });
+    const reviews = await Review.find({ mechanic: mechanicId }).populate('user', 'name image');
     if (!reviews || reviews.length === 0) {
       throw new Error('No reviews found for this mechanic');
     }

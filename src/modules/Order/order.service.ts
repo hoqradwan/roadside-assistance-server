@@ -767,9 +767,10 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
 
   const fiveDigitOTPToConfirmOrder = Math.floor(10000 + Math.random() * 90000).toString();
   await NotificationModel.create({
+    orderId: order._id,
     userId: order.user,
     // userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order ${orderId}`,
-    userMsg: `Please enter this code ${(order.mechanic as any).name} to complete the order ${orderId}`,
+    userMsg: `Your order has completed by ${(order.mechanic as any).name} `,
     adminMsg: ""
   });
 
@@ -801,7 +802,7 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
   // }
 
   // Return the updated wallet
-  return fiveDigitOTPToConfirmOrder;
+  return order;
 };
 
 export const verifyOrderCompletionFromUserEndIntoDB = async (

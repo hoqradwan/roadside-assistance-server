@@ -17,7 +17,8 @@ export const createReview = catchAsync(async (req: CustomRequest, res: Response)
     })
 })
 export const getReviews = catchAsync(async (req, res) => {
-    const result = await getReviewsFromDB();
+    const { mechanicId } = req.params;
+    const result = await getReviewsFromDB(mechanicId);
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,

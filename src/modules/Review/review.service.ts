@@ -1,8 +1,10 @@
 import Order from "../Order/order.model";
+import { UserModel } from "../user/user.model";
 import { IReview } from "./review.interface";
 import Review from "./review.model"
   
 export const createReviewIntoDB = async (reviewData: IReview, userId: string) => {
+  console.log("hiting")
     const { order: orderId, rating, comment } = reviewData;
   
     const order = await Order.findById(orderId);
@@ -25,7 +27,6 @@ export const createReviewIntoDB = async (reviewData: IReview, userId: string) =>
     const review = await Review.create({
       user: userId,
       order: orderId,
-      service: order.services,
       mechanic: order.mechanic,
       rating,
       comment,
@@ -34,19 +35,28 @@ export const createReviewIntoDB = async (reviewData: IReview, userId: string) =>
     return review;
   };
 
-export const getReviewsFromDB = async()=>{
-    const reviews = await Review.find();
-    return reviews;
-}
-export const getReviewByMechanicFromDB = async (mechanicId: string) => {
+export const getReviewsFromDB = async(mechanicId: string)=>{
     if (!mechanicId) {
         throw new Error('Mechanic ID is required');
     }
-
+    const isMechanic = await UserModel.findById(mechanicId);
+    if(isMechanic?.role !== 'mechanic') {
+        throw new Error('User is not a mechanic');
+    }
+    // Fetch reviews for the mechanic
     const reviews = await Review.find({ mechanic: mechanicId });
     if (!reviews || reviews.length === 0) {
-        throw new Error('No reviews found for this mechanic');
+      throw new Error('No reviews found for this mechanic');
     }
 
-    return reviews;
+    // Calculate average rating
+    const averageRating =
+      reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+
+    return { reviews, averageRating };
+}
+export const getReviewByMechanicFromDB = async (mechanicId: string) => {
+   
+
+    // return reviews;
 };

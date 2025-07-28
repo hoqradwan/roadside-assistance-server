@@ -65,10 +65,7 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: generateUniqueId,
     },
-    rating :{
-      type: Number,
-      default: 0,
-    },
+
    
   },
   { timestamps: true },

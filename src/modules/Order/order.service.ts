@@ -185,7 +185,6 @@ export const makePaymentIntoDB = async (userId: string, orderId: string, payment
 
     // Fetch the order
     const userOrder = await Order.findOne({ _id: orderId, user: userId }).session(session);
-    console.log(orderId, userId)
     if (!userOrder) {
       throw new AppError(httpStatus.BAD_REQUEST, "order not found or does not belong to this user");
     }

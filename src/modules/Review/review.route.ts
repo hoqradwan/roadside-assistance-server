@@ -8,7 +8,7 @@ const router = Router();
 router.post('/', adminMiddleware("user"), createReview);
 
 // // Get all reviews
-router.get('/',adminMiddleware("user"), getReviews);
+router.get('/:mechanicId',adminMiddleware("user"), getReviews);
 
 // // Get a review by ID
 router.get('/mechanic',adminMiddleware("mechanic"), getReviewByMechanic);

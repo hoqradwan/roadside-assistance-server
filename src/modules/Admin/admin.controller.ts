@@ -22,8 +22,8 @@ export const getAdminWalletOverview = catchAsync(async (req, res) => {
     });
 })
 export const acceptWithdrawRequest = catchAsync(async (req, res) => {
-    const { mechanicId } = req.params;
-    const result = await acceptWithdrawRequestIntoDB(mechanicId);
+    const { requestId } = req.params;
+    const result = await acceptWithdrawRequestIntoDB(requestId);
     sendResponse(res, {
         statusCode: 200,
         success: true,

@@ -11,143 +11,146 @@ import mongoose from "mongoose";
 import { PaymentModel } from "../payment/payment.model";
 
 export const getOverviewFromDB = async () => {
-    const totalOrders = await Order.countDocuments();
-    const totalVehicles = await Vehicle.countDocuments();
-    const totalMechanics = await UserModel.countDocuments();
-    const totalUsers = await UserModel.countDocuments();
-    const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
-    return {
-        totalOrders,
-        totalVehicles,
-        totalMechanics,
-        totalUsers,
-        totalEarnings: totalEarnings?.totalEarnings || 0,
-    }
+  const totalOrders = await Order.countDocuments();
+  const totalVehicles = await Vehicle.countDocuments();
+  const totalMechanics = await UserModel.countDocuments();
+  const totalUsers = await UserModel.countDocuments();
+  const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
+  return {
+    totalOrders,
+    totalVehicles,
+    totalMechanics,
+    totalUsers,
+    totalEarnings: totalEarnings?.totalEarnings || 0,
+  }
 }
 export const getAdminWalletOverviewFromDB = async () => {
-    // Find admin record
-    const result = await Admin.findOne({ role: "admin" });
+  // Find admin record
+  const result = await Admin.findOne({ role: "admin" });
 
-    // If admin not found, throw an error
-    if (!result) {
-        throw new AppError(httpStatus.NOT_FOUND, "Admin not found");
-    }
+  // If admin not found, throw an error
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Admin not found");
+  }
 
-    // Count the number of withdraw requests with status "processing"
-    const totalWithdrawRequests = await Withdraw.countDocuments({ status: "processing" });
+  // Count the number of withdraw requests with status "processing"
+  const totalWithdrawRequests = await Withdraw.countDocuments({ status: "processing" });
 
-    // Prepare the final data by merging the admin data and the count of withdraw requests
-    const adminWalletOverviewData = {
-        ...result.toObject(),
-        totalWithdrawRequests,
-    };
+  // Prepare the final data by merging the admin data and the count of withdraw requests
+  const adminWalletOverviewData = {
+    ...result.toObject(),
+    totalWithdrawRequests,
+  };
 
-    return adminWalletOverviewData;
+  return adminWalletOverviewData;
 };
 
 
-export const acceptWithdrawRequestIntoDB = async (mechanicId: string) => {
-    const session = await mongoose.startSession();  // Start a session
+export const acceptWithdrawRequestIntoDB = async (requestId: string) => {
+  const session = await mongoose.startSession();  // Start a session
 
-    try {
-        session.startTransaction();  // Start a new transaction
-
-        // 1. Update the withdraw request status to "completed"
-        const withdraw = await Withdraw.findOneAndUpdate(
-            { user: mechanicId },
-            {status : "withdraw", adminStatus: "completed" },
-            { session }
-        );
-
-        if (!withdraw) {
-            throw new AppError(httpStatus.NOT_FOUND, "Withdraw request not found");
-        }
-
-        // 2. Update the mechanic's wallet: deduct the amount from available balance and add to withdrawn amount
-        const mechanicWallet = await Wallet.findOneAndUpdate(
-            { user: mechanicId },
-            {
-                $inc: {
-                    availableBalance: -(withdraw?.amount ?? 0),
-                    withdrawnAmount: withdraw?.amount
-                }
-            },
-            { session, new: true }
-        );
-
-        if (!mechanicWallet) {
-            throw new AppError(httpStatus.NOT_FOUND, "No wallet found for this mechanic");
-        }
-
-        // 3. Update the admin's wallet: increase the total paid amount by the withdraw amount
-        const adminWallet = await Admin.updateOne(
-            { role: "admin" },
-            { $inc: { totalPaidAmount: withdraw?.amount } },
-            { session }
-        );
-
-        if (adminWallet.modifiedCount === 0) {
-            throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update admin wallet");
-        }
-
-        // Commit the transaction if all operations succeed
-        await session.commitTransaction();
-
-        return adminWallet;
-    } catch (error) {
-        // If any error occurs, abort the transaction
-        await session.abortTransaction();
-        throw error;  // Re-throw the error so it can be caught by the caller
-    } finally {
-        session.endSession();  // End the session
+  try {
+    session.startTransaction();  // Start a new transaction
+    const withdrawExists = await Withdraw.findById(requestId).session(session);
+    if (!withdrawExists) {
+      throw new AppError(httpStatus.NOT_FOUND, "Withdraw request not found");
     }
+    // 1. Update the withdraw request status to "completed"
+    const withdraw = await Withdraw.findByIdAndUpdate(
+      requestId,
+      { status: "withdraw", adminStatus: "completed" },
+      { new: true, session }
+    );
+
+    if (!withdraw) {
+      throw new AppError(httpStatus.NOT_FOUND, "Withdraw request not found");
+    }
+
+    // 2. Update the mechanic's wallet: deduct the amount from available balance and add to withdrawn amount
+    const mechanicWallet = await Wallet.findOneAndUpdate(
+      { user: withdrawExists.user },
+      {
+        $inc: {
+          availableBalance: -(withdraw?.amount ?? 0),
+          withdrawnAmount: withdraw?.amount
+        }
+      },
+      { session, new: true }
+    );
+
+    if (!mechanicWallet) {
+      throw new AppError(httpStatus.NOT_FOUND, "No wallet found for this mechanic");
+    }
+
+    // 3. Update the admin's wallet: increase the total paid amount by the withdraw amount
+    const adminWallet = await Admin.updateOne(
+      { role: "admin" },
+      { $inc: { totalPaidAmount: withdraw?.amount } },
+      { session }
+    );
+
+    if (adminWallet.modifiedCount === 0) {
+      throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update admin wallet");
+    }
+
+    // Commit the transaction if all operations succeed
+    await session.commitTransaction();
+
+    return adminWallet;
+  } catch (error) {
+    // If any error occurs, abort the transaction
+    await session.abortTransaction();
+    throw error;  // Re-throw the error so it can be caught by the caller
+  } finally {
+    session.endSession();  // End the session
+  }
 };
 
 export const getAnalyticsDataFromDB = async () => {
-    // Fetch total sales (total number of completed orders)
-    const totalSales = await Order.countDocuments({ status: "completed" });
-  
-    // Fetch total earnings (admin's total earnings)
-    const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
-  
-    // Fetch user activity (number of users registered per month)
-    const userActivity = await UserModel.aggregate([
-      {
-        $group: {
-          _id: { $month: "$createdAt" },
-          count: { $sum: 1 },
-        },
+  // Fetch total sales (total number of completed orders)
+  const totalSales = await Order.countDocuments({ status: "completed" });
+
+  // Fetch total earnings (admin's total earnings)
+  const totalEarnings = await Admin.findOne({ role: "admin" }, { totalEarnings: 1 });
+
+  // Fetch user activity (number of users registered per month)
+  const userActivity = await UserModel.aggregate([
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        count: { $sum: 1 },
       },
-      { $sort: { _id: 1 } },
-    ]);
-  
-    // Fetch mechanic activity (number of orders completed by mechanics per month)
-    const mechanicActivity = await Order.aggregate([
-      { $match: { status: "completed" } },
-      {
-        $group: {
-          _id: { $month: "$completedAt" },
-          count: { $sum: 1 },
-        },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  // Fetch mechanic activity (number of orders completed by mechanics per month)
+  const mechanicActivity = await Order.aggregate([
+    { $match: { status: "completed" } },
+    {
+      $group: {
+        _id: { $month: "$completedAt" },
+        count: { $sum: 1 },
       },
-      { $sort: { _id: 1 } },
-    ]);
-  
-    // Prepare the analytics data for frontend
-    const analyticsData = {
-      totalSales,
-      totalEarnings: totalEarnings?.totalEarnings || 0,
-      userActivity: userActivity.map((item) => ({
-        month: item._id,
-        count: item.count,
-      })),
-      mechanicActivity: mechanicActivity.map((item) => ({
-        month: item._id,
-        count: item.count,
-      })),
-    };
-  
-    return analyticsData;
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  // Prepare the analytics data for frontend
+  const analyticsData = {
+    totalSales,
+    totalEarnings: totalEarnings?.totalEarnings || 0,
+    userActivity: userActivity.map((item) => ({
+      month: item._id,
+      count: item.count,
+    })),
+    mechanicActivity: mechanicActivity.map((item) => ({
+      month: item._id,
+      count: item.count,
+    })),
+  };
+
+  return analyticsData;
 };
 
 const monthNames = [
@@ -164,7 +167,7 @@ export const getEarningsGraphChartFromDB = async (
   let endDate: Date;
   const currentYear = year || new Date().getFullYear();
   const currentMonth = month !== undefined ? month - 1 : new Date().getMonth();
- 
+
   if (period === 'yearly') {
     // Show data for 11 years (5 years before and 5 years after the current year)
     const yearRange = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
@@ -219,7 +222,7 @@ export const getEarningsGraphChartFromDB = async (
   } else {
     throw new Error("Invalid period. Use 'weekly', 'monthly', or 'yearly'.");
   }
- 
+
   const payments = await PaymentModel.aggregate([
     {
       $match: {
@@ -231,22 +234,22 @@ export const getEarningsGraphChartFromDB = async (
         _id:
           period === 'weekly'
             ? {
-                $subtract: [
-                  { $divide: [{ $dayOfMonth: '$createdAt' }, 7] },
-                  {
-                    $mod: [{ $divide: [{ $dayOfMonth: '$createdAt' }, 7] }, 1],
-                  },
-                ],
-              }
+              $subtract: [
+                { $divide: [{ $dayOfMonth: '$createdAt' }, 7] },
+                {
+                  $mod: [{ $divide: [{ $dayOfMonth: '$createdAt' }, 7] }, 1],
+                },
+              ],
+            }
             : period === 'monthly'
-            ? { $month: '$createdAt' }
-            : { $year: '$createdAt' },
+              ? { $month: '$createdAt' }
+              : { $year: '$createdAt' },
         totalEarnings: { $sum: '$totalPrice' },
       },
     },
     { $sort: { _id: 1 } },
   ]);
- 
+
   payments.forEach(payment => {
     if (period === 'weekly') {
       const weekIndex = Math.min(
@@ -256,8 +259,7 @@ export const getEarningsGraphChartFromDB = async (
       if (earningsData[weekIndex]) {
         earningsData[weekIndex].totalEarnings = payment.totalEarnings; // No conversion, already in euros
         console.log(
-          `Matched weekly payment: Week ${weekIndex + 1}, Earnings: ${
-            payment.totalEarnings
+          `Matched weekly payment: Week ${weekIndex + 1}, Earnings: ${payment.totalEarnings
           }`
         );
       }
@@ -281,8 +283,8 @@ export const getEarningsGraphChartFromDB = async (
       }
     }
   });
- 
+
   console.log('Final Earnings Data:', earningsData);
- 
+
   return { earnings: earningsData, period };
 };

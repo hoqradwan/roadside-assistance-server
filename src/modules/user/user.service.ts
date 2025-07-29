@@ -327,7 +327,6 @@ export const updateProfileIntoDB = async (
 };
 
 export const getUserLoactionFromDB = async (userId: string) => {
-  console.log("in service getUserLoactionFromDB", userId);
   const user = await UserModel.findById(userId).select("location");
   return  user && user.location && user.location.coordinates ?  user.location.coordinates : [0, 0];
 }

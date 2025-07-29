@@ -10,7 +10,6 @@ import { UserModel } from "../user/user.model";
 import Mechanic from "../Mechanic/mechanic.model";
 import Vehicle from "../Vehicle/vehicle.model";
 import Service from "../Service/service.model";
-import { emitNotification } from "../../utils/socket";
 import { NotificationModel } from "../notifications/notification.model";
 import { MechanicServiceRateModel } from "../MechanicServiceRate/mechanicServiceRate.model";
 import mongoose from "mongoose";
@@ -36,8 +35,10 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
   if (!existingVehicle) {
     throw new AppError(httpStatus.NOT_FOUND, "Vehicle not found");
   }
-
-
+  const isVehicleOwnedByUser = existingVehicle.user.toString() === userId;
+  if (!isVehicleOwnedByUser) {
+    throw new AppError(httpStatus.FORBIDDEN, "Vehicle does not belong to the user");
+  }
   // 4. Validate services exist
   const existingServices = await Service.find({ _id: { $in: orderData.services } });
   if (existingServices.length !== orderData.services.length) {
@@ -113,7 +114,8 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
     if (appService.type === "number") {
       total += appService.amount;
     } else if (appService.type === "percentage") {
-      total += (total + appService.amount) / 100;
+
+      total += (total * appService.amount) / 100;
     }
   }
 
@@ -692,7 +694,8 @@ export const getOrdersByStatusFromDB = async (status: string, userData: Partial<
 
   // If the user is an admin, they can fetch orders for any mechanic
   if (userData.role === 'admin') {
-    const order = await Order.find().select("-vehicle -services -location -user");
+    console.log("hit")
+    const order = await Order.find();
     pendingCount = await Order.countDocuments({ status: 'pending' });
     processingCount = await Order.countDocuments({ status: 'processing' });
     completedCount = await Order.countDocuments({ status: 'completed' });
@@ -779,6 +782,8 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
     await Wallet.create({ user: order.mechanic });
   }
 
+ 
+
   // emitNotification({
   //     userId: order.user,
   //     userMsg: `Please enter this code ${fiveDigitOTPToConfirmOrder} to complete the order`,
@@ -804,6 +809,20 @@ export const markAsCompleteIntoDB = async (orderId: string, mechanicId: string) 
   // Return the updated wallet
   return order;
 };
+
+export const getOrdersByStatusForAdminFromDB=async()=>{
+  const pendingCount = await Order.countDocuments({ status: 'pending' });
+  const processingCount = await Order.countDocuments({ status: 'processing' });
+  const completedCount = await Order.countDocuments({ status: 'completed' });
+  const cancelledCount = await Order.countDocuments({ status: 'cancelled' });
+
+  return {
+    pendingCount,
+    processingCount,
+    completedCount,
+    cancelledCount
+  };
+}
 
 export const verifyOrderCompletionFromUserEndIntoDB = async (
   orderId: string,

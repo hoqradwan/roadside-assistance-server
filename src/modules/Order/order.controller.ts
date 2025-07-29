@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { acceptOrderIntoDB, cancelOrderFromDB, createOrderIntoDB, getOrderByIdFromDB, getOrdersByMechanicFromDB, getOrdersByStatusFromDB, getOrdersByUserFromDB, getOrdersFromDB, getSingleOrderFromDB, makePaymentIntoDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
+import { acceptOrderIntoDB, cancelOrderFromDB, createOrderIntoDB, getOrderByIdFromDB, getOrdersByMechanicFromDB, getOrdersByStatusForAdminFromDB, getOrdersByStatusFromDB, getOrdersByUserFromDB, getOrdersFromDB, getSingleOrderFromDB, makePaymentIntoDB, markAsCompleteIntoDB, verifyOrderCompletionFromUserEndIntoDB } from "./order.service";
 import { CustomRequest } from "../../utils/customRequest";
 
 export const createOrder = catchAsync(async (req: CustomRequest, res: Response) => {
@@ -84,9 +84,21 @@ export const getOrderById = catchAsync(async (req: CustomRequest, res: Response)
 })
 
 export const getOrdersByStatus = catchAsync(async (req: CustomRequest, res: Response) => {
-  const status = req.params.status;
+  let status = req.params.status;
   const userData = req.user
+
   const result = await getOrdersByStatusFromDB(status, userData);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order fetched by status successfully",
+    data: result,
+  });
+})
+export const getOrdersByStatusForAdmin = catchAsync(async (req: CustomRequest, res: Response) => {
+
+  const result = await getOrdersByStatusForAdminFromDB();
 
   sendResponse(res, {
     statusCode: 200,

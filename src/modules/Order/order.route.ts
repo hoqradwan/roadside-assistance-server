@@ -1,14 +1,15 @@
 import { Router } from 'express';
-import { createOrder, getOrders, getSingleOrder, getOrdersByStatus ,getOrdersByMechanic, markAsComplete, getOrdersByUser, verifyOrderCompletionFromUserEnd, cancelOrder, acceptOrder, getOrderById, makePayment, } from './order.controller';
+import { createOrder, getOrders, getSingleOrder, getOrdersByStatus ,getOrdersByMechanic, markAsComplete, getOrdersByUser, verifyOrderCompletionFromUserEnd, cancelOrder, acceptOrder, getOrderById, makePayment, getOrdersByStatusForAdmin, } from './order.controller';
 import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
 
 // Create a new order
 router.get('/user',adminMiddleware("admin","user","mechanic"), getOrdersByUser);
+router.get('/status/admin',adminMiddleware("admin"), getOrdersByStatusForAdmin);
 router.get('/:id', adminMiddleware("admin","user","mechanic"),  getSingleOrder);
 router.get('/status/:status',adminMiddleware("admin","mechanic","user"), getOrdersByStatus);
-router.get('/all',adminMiddleware("admin"), getOrders)
+router.get('/all',adminMiddleware("admin"), getOrders);
 router.post('/', adminMiddleware("user"), createOrder);
 router.post('/makePayment/:orderId', adminMiddleware("user"), makePayment);
 router.post('/accept/:orderId', adminMiddleware("mechanic"), acceptOrder);

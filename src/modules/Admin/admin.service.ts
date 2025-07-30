@@ -1,6 +1,5 @@
 import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
-import Mechanic from "../Mechanic/mechanic.model";
 import Order from "../Order/order.model";
 import { UserModel } from "../user/user.model";
 import Vehicle from "../Vehicle/vehicle.model";
@@ -49,8 +48,8 @@ export const getAdminWalletOverviewFromDB = async () => {
 export const acceptWithdrawRequestIntoDB = async (requestId: string) => {
   const session = await mongoose.startSession();  // Start a session
 
+  session.startTransaction();  // Start a new transaction
   try {
-    session.startTransaction();  // Start a new transaction
     const withdrawExists = await Withdraw.findById(requestId).session(session);
     if (!withdrawExists) {
       throw new AppError(httpStatus.NOT_FOUND, "Withdraw request not found");

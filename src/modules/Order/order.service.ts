@@ -156,8 +156,8 @@ export const createOrderIntoDB = async (userId: string, orderData: any) => {
   const session = await mongoose.startSession();
   let order;
 
+  session.startTransaction();
   try {
-    session.startTransaction();
 
     order = await Order.create([finalOrderData], { session });
 
@@ -214,7 +214,7 @@ export const makePaymentIntoDB = async (userId: string, orderId: string, payment
       { new: true, upsert: true, session }
     );
     userOrder.status = "paid"; // Update order status to paid
-    userOrder.save({ session });
+   await userOrder.save({ session });
 
     // Commit the transaction
     await session.commitTransaction();

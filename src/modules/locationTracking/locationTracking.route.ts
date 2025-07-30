@@ -6,7 +6,7 @@ import { getTrackingHistory } from './locationTracking.service';
 const router = Router();
 
 // Initialize tracking
-router.post('/initialize/:mechanicId', adminMiddleware("user"), initializeTracking);
+router.post('/initialize/:mechanicId', adminMiddleware("user","mechanic"), initializeTracking);
 
 // Update locations
 router.put('/:orderId/mechanic-location', adminMiddleware("user"), updateMechanicLocation);

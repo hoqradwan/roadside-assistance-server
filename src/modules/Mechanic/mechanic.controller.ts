@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import { CustomRequest } from "../../utils/customRequest";
 import sendResponse from "../../utils/sendResponse";
 import Mechanic from "./mechanic.model";
-import { createMechanicIntoDB, getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicAdminFromDB, getSingleMechanicFromDB, makeMechanicIntoDB,  setServiceRadiusIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
+import { createMechanicIntoDB, getAllMechanicsFromDB, getAllTestMechanicsFromDB, getMechanicWithServicePriceFromDB, getSingleMechanicAdminFromDB, getSingleMechanicFromDB, makeMechanicIntoDB, setServiceRadiusIntoDB, sortMechanics, toggleAvailabilityIntoDB } from "./mechanic.service";
 
 export const makeMechanic = catchAsync(async (req, res) => {
     const { email } = req.body;
@@ -15,8 +15,8 @@ export const makeMechanic = catchAsync(async (req, res) => {
         data: result
     })
 })
-export const setServiceRadius = catchAsync(async (req : CustomRequest, res: Response) => {
-    const {id : mechanicId} = req.user
+export const setServiceRadius = catchAsync(async (req: CustomRequest, res: Response) => {
+    const { id: mechanicId } = req.user
     const mechanicServiceAreaWithLocationData = req.body;
     const result = await setServiceRadiusIntoDB(mechanicId, mechanicServiceAreaWithLocationData);
 
@@ -181,7 +181,7 @@ export const getAllTestMechanics = catchAsync(async (req: CustomRequest, res) =>
         cleanedServiceName === 'null') {
         cleanedServiceName = undefined;
     }
-   
+
     // Call the service function to get the mechanics with pagination
     const result = await getAllTestMechanicsFromDB({
         currentPage: parseInt(currentPage as string),  // Ensure currentPage is a number

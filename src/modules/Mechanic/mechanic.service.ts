@@ -1003,7 +1003,8 @@ export const getAllTestMechanicsFromDB = async ({
       },
     ]);
 
-  } else {
+  } else if(cleanServiceName === undefined || cleanServiceName === "") {
+
     // If no serviceName is provided OR serviceName is empty, get all mechanics in the area
     geoNearResult = await UserModel.aggregate([
       {
@@ -1014,7 +1015,7 @@ export const getAllTestMechanicsFromDB = async ({
           },
           key: "location",
           distanceField: "distanceInMeters",
-          maxDistance: MAX_DISTANCE_METERS, // ADD THIS: Limit to 60km (60000 meters)
+          // maxDistance: MAX_DISTANCE_METERS, // ADD THIS: Limit to 60km (60000 meters)
           spherical: true,
         },
       },

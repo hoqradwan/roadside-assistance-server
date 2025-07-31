@@ -172,7 +172,6 @@ export const getAllTestMechanics = catchAsync(async (req: CustomRequest, res) =>
 
     // Properly handle serviceName - convert empty strings and "undefined" to undefined
     let cleanedServiceName: string | undefined = serviceName as string;
-
     if (!cleanedServiceName ||
         cleanedServiceName === '' ||
         cleanedServiceName === '""' ||

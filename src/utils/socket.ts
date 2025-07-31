@@ -79,9 +79,10 @@ const initSocketIO = (server: HttpServer) => {
     // Handle private messages
     socket.on('send-message', async ({ to, message }: { to: string; message: string }) => {
 
-      console.log('Message received:', { to, message });
-
-      console.log("check user id", userData?.id)
+      if (userData?.id === to) {
+        socket.emit('error', 'You cannot send a message to yourself');
+        return
+      }
       if (!userData?.id) {
         socket.emit('error', 'Unauthorized');
         return;
@@ -94,8 +95,8 @@ const initSocketIO = (server: HttpServer) => {
           message,
           timestamp: new Date()
         });
-        const senderImage =await UserModel.findById(userData?.id).select("image");
-        const receiverImage =await UserModel.findById(to).select("image");
+        const senderImage = await UserModel.findById(userData?.id).select("image");
+        const receiverImage = await UserModel.findById(to).select("image");
 
         // console.log({ onlineUsers });
         // Emit to recipient if online
@@ -104,11 +105,11 @@ const initSocketIO = (server: HttpServer) => {
           io?.to(to).emit('private-message', messageResult);
         }
         // Also send back to sender for their own UI
-        socket.emit('send-message', { 
-            ...messageResult.toObject(),
-            senderImage: senderImage?.image,
-            receiverImage: receiverImage?.image
-          
+        socket.emit('send-message', {
+          ...messageResult.toObject(),
+          senderImage: senderImage?.image,
+          receiverImage: receiverImage?.image
+
         });
 
       } catch (error) {
@@ -149,7 +150,7 @@ const initSocketIO = (server: HttpServer) => {
     socket.on('joinUserRoom', (userId: string) => {
       socket.join(`user-${userId}`);
       console.log(`Socket ${socket.id} joined user room: user-${userId}`);
-      socket.emit("joinUserRoom" , userId)
+      socket.emit("joinUserRoom", userId)
     });
 
     // Join mechanic-specific room
@@ -164,11 +165,11 @@ const initSocketIO = (server: HttpServer) => {
         const { orderId, userType, userId, longitude, latitude } = data;
         let result;
         if (userType === 'mechanic') {
-         result = await updateMechanicLocationIntoDB(orderId, userId, longitude, latitude);
+          result = await updateMechanicLocationIntoDB(orderId, userId, longitude, latitude);
         } else {
-         result = await updateUserLocationIntoDB(orderId, userData?.id, longitude, latitude);
+          result = await updateUserLocationIntoDB(orderId, userData?.id, longitude, latitude);
         }
-        socket.emit("updateLocation",result);
+        socket.emit("updateLocation", result);
       } catch (error) {
         console.log(error)
         socket.emit('error', { message: 'Failed to update location' });

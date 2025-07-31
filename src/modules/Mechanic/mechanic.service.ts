@@ -1007,7 +1007,7 @@ export const getAllTestMechanicsFromDB = async ({
 
     // If no serviceName is provided OR serviceName is empty, get all mechanics in the area
     geoNearResult = await UserModel.aggregate([
-      {
+      { 
         $geoNear: {
           near: {
             type: "Point",

@@ -104,8 +104,10 @@ const initSocketIO = (server: HttpServer) => {
           const sockeId = onlineUsers.get(to);
           io?.to(to).emit('private-message', messageResult);
         }
+
         // Also send back to sender for their own UI
-        socket.emit('send-message', {
+
+        io?.emit(`send-message:${to}`, {
           ...messageResult.toObject(),
           senderImage: senderImage?.image,
           receiverImage: receiverImage?.image

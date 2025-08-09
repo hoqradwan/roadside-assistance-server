@@ -80,7 +80,7 @@ export const getChatHistoryFromDB = async (sender: string, receiver: string) => 
         { sender, receiver },
         { sender: receiver, receiver: sender }
       ]
-    }).sort('-timestamp -createdAt');
+    }).sort('-createdAt');
 
     // Fetch sender and receiver images concurrently
     const [senderImage, receiverImage] = await Promise.all([
